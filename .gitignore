@@ -1,5 +1,6 @@
 **/node_modules
 **/dist
+**/build
 
 # Logs
 **/logs
@@ -10,3 +11,8 @@
 **/yarn-error.log*
 **/lerna-debug.log*
 **/yarn.lock
+
+**/.DS_Store
+
+# server
+server/src/common/constants.ts
