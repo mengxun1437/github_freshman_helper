@@ -9,4 +9,13 @@ export class IssueController {
         await this.issueService.collectFirstIssues()
         return 'success'
     }
+
+    @Get('/getGitHubRateLimit')
+    async getGitHubRateLimit():Promise<any>{
+        const { octokit , authIndex} = this.issueService.getOctokits()
+        return {
+            authIndex,
+            data:await octokit.request('GET /rate_limit')
+        }
+    }
 }

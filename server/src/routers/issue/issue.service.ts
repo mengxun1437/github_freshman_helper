@@ -30,12 +30,16 @@ export class IssueService {
   }
 
   getOctokits(){
+      const authIndex = this.authIndex
       if(this.authIndex < octokits.length - 1){
           this.authIndex ++
       }else{
           this.authIndex = 0
       }
-      return octokits[this.authIndex]
+      return {
+          authIndex,
+          octokit:octokits[authIndex]
+      }
   }
 
   // 收集
@@ -49,8 +53,8 @@ export class IssueService {
     perPage?: number;
   }): Promise<any> {
     try {
-      const octokit = this.getOctokits()
-      console.log(`using octokit authIndex:${this.authIndex}`)
+      const { octokit , authIndex} = this.getOctokits()
+      console.log(`using octokit authIndex:${authIndex}`)
       const resp = await octokit.request('GET /search/issues', {
         q: `created:${date} label:"good first issue"`,
         per_page: perPage,
