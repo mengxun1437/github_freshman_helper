@@ -4,12 +4,15 @@ import { octokit } from 'src/common/github';
 import { Repository } from 'typeorm';
 import { Issue } from './issue.entity';
 import * as dayjs from 'dayjs';
+import { IssueCollect } from './issue-collect.entity';
 
 @Injectable()
 export class IssueService {
   constructor(
     @InjectRepository(Issue)
     private readonly issueRepository: Repository<Issue>,
+    @InjectRepository(IssueCollect)
+    private readonly issueCollectRepositiry: Repository<IssueCollect>,
   ) {}
   // 判断issue是否已经存在
   async _issueExistsById(issueId) {
@@ -50,8 +53,25 @@ export class IssueService {
     }
   }
 
-  // 先收集当天的，如果当前的超过了1000条 -> 分成两个半天
+  // 收集记录
+  _getIssueCollect({
+    createdDate,
+    collectNum,
+    hasNum,
+  }: {
+    createdDate: string;
+    collectNum: number;
+    hasNum: number;
+  }) {
+    const newIssueCollect = new IssueCollect();
+    newIssueCollect.createdDate = createdDate;
+    newIssueCollect.collectNum = collectNum;
+    newIssueCollect.hasNum = hasNum;
+    newIssueCollect.collectedTime = dayjs().format('YYYY-MM-DD');
+    return newIssueCollect;
+  }
 
+  // 先收集当天的，如果当前的超过了1000条 -> 分成两个半天
   async _collectPerDate({ date }): Promise<any[]> {
     console.log('collecting date:', date);
     try {
@@ -71,7 +91,18 @@ export class IssueService {
         }
       } else {
         // 暂不搜集，等后续确定逻辑
-        console.log('data length > 1000')
+        console.log('data length > 1000');
+        try {
+          await this.issueCollectRepositiry.save(
+            this._getIssueCollect({
+              createdDate: date,
+              collectNum: 0,
+              hasNum: resp?.total_count || 0,
+            }),
+          );
+        } catch (e) {
+          console.log('save issue collect error:', e);
+        }
       }
       return data;
     } catch {
@@ -103,9 +134,9 @@ export class IssueService {
     // 目前每天更新一次
     const lastCollectedTime =
       (
-        await this.issueRepository.query('select max(issueCreated) from issue')
-      )?.[0]?.['max(issueCreated)'] || '2007-01-01';
-    let lastDate = dayjs(dayjs('2007-01-01').format('YYYY-MM-DD'));
+        await this.issueRepository.query('select max(createdDate) from issue_collect')
+      )?.[0]?.['max(createdDate)'] || '2007-01-01';
+    let lastDate = dayjs(dayjs(lastCollectedTime).format('YYYY-MM-DD'));
     let curDate = dayjs(dayjs().format('YYYY-MM-DD'));
     const fakeInterval = async (lastDate) => {
       if (lastDate.isBefore(curDate)) {
@@ -114,13 +145,26 @@ export class IssueService {
             date: lastDate.format('YYYY-MM-DD'),
           });
           console.log(`collected %d`, data.length);
+          let collected = 0;
           data.forEach((d) => {
             try {
               this.issueRepository.save(this._getNewIssue(d));
+              collected++;
             } catch (e) {
               console.log(e);
             }
           });
+          try {
+            await this.issueCollectRepositiry.save(
+              this._getIssueCollect({
+                createdDate: lastDate.format('YYYY-MM-DD'),
+                collectNum: collected,
+                hasNum: data?.length || 0,
+              }),
+            );
+          } catch (e) {
+            console.log('save issue collect error:', e);
+          }
           lastDate = lastDate.add(1, 'day');
           await fakeInterval(lastDate);
         }, 2500);
@@ -128,6 +172,6 @@ export class IssueService {
         return;
       }
     };
-    await fakeInterval(lastDate)
+    await fakeInterval(lastDate);
   }
 }

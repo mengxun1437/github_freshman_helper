@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { IssueService } from './issue.service';
 import { Issue } from './issue.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { IssueCollect } from './issue-collect.entity';
 
 @Module({
-  imports:[TypeOrmModule.forFeature([Issue])],
+  imports:[TypeOrmModule.forFeature([Issue,IssueCollect])],
   providers: [],
   controllers: [],
   exports: [TypeOrmModule],
