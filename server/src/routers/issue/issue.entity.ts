@@ -7,7 +7,7 @@ export class Issue {
   issueId: number;
 
   // issue的title
-  @Column()
+  @Column({ type: 'text' })
   issueTitle: string;
 
   // issue的状态

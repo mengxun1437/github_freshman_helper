@@ -13,33 +13,35 @@ export class IssueService {
     private readonly issueRepository: Repository<Issue>,
     @InjectRepository(IssueCollect)
     private readonly issueCollectRepositiry: Repository<IssueCollect>,
-  ) {}
-
-  private authIndex: number = 0;
-  // 判断issue是否已经存在
-  async _issueExistsById(issueId) {
-    try {
-      if (this.issueRepository.findOne({ issueId: issueId })) {
-        return true;
-      } else {
-        return false;
-      }
-    } catch {
-      return false;
-    }
+  ) {
+    this._initAuthMap();
   }
 
-  getOctokits() {
-    const authIndex = this.authIndex;
-    if (this.authIndex < octokits.length - 1) {
-      this.authIndex++;
-    } else {
-      this.authIndex = 0;
+  private authMap: { [index: number]: number } = {};
+  private dateQueue: string[] = [];
+  private lockSourceNum: number = 0;
+
+  // 初始化请求资源
+  _initAuthMap() {
+    this.authMap = {};
+    this.lockSourceNum = 0;
+    octokits.forEach((_, index) => {
+      this.authMap[index] = 30;
+    });
+  }
+
+  getOctokit() {
+    const authIndex = Object.keys(this.authMap).find(
+      (key) => this.authMap[key] > 0,
+    );
+    if (authIndex !== undefined) {
+      this.authMap[authIndex] -= 1;
+      return {
+        authIndex,
+        octokit: octokits[authIndex],
+      };
     }
-    return {
-      authIndex,
-      octokit: octokits[authIndex],
-    };
+    return {};
   }
 
   // 收集
@@ -53,8 +55,8 @@ export class IssueService {
     perPage?: number;
   }): Promise<any> {
     try {
-      const { octokit, authIndex } = this.getOctokits();
-      console.log(`using octokit authIndex:${authIndex}`);
+      const { octokit, authIndex } = this.getOctokit();
+      console.log(`[${date}] using octokit authIndex:${authIndex}`);
       const resp = await octokit.request('GET /search/issues', {
         q: `created:${date} label:"good first issue"`,
         per_page: perPage,
@@ -65,7 +67,17 @@ export class IssueService {
       }
       return {};
     } catch (e) {
-      console.log('get api error:', e);
+      console.log(`[${date}] get api error:`, e.message);
+      try {
+        await this.issueCollectRepositiry.save(
+          this._getIssueCollect({
+            createdDate: date,
+            hasNum: -1,
+          }),
+        );
+      } catch (e) {
+        console.log(`[${date}] save issue collect error:`, e.message);
+      }
       return {};
     }
   }
@@ -77,49 +89,57 @@ export class IssueService {
     hasNum,
   }: {
     createdDate: string;
-    collectNum: number;
-    hasNum: number;
+    collectNum?: number;
+    hasNum?: number;
   }) {
-    console.log('collect created date:', createdDate);
     const newIssueCollect = new IssueCollect();
     newIssueCollect.createdDate = createdDate;
-    newIssueCollect.collectNum = collectNum;
-    newIssueCollect.hasNum = hasNum;
+    if (collectNum) {
+      newIssueCollect.collectNum = collectNum;
+    }
+    if (hasNum) {
+      newIssueCollect.hasNum = hasNum;
+    }
     newIssueCollect.collectedTime = dayjs().format('YYYY-MM-DD');
     return newIssueCollect;
   }
 
   // 先收集当天的，如果当前的超过了1000条 -> 分成两个半天
   async _collectPerDate({ date }): Promise<any[]> {
-    console.log('collecting date:', date);
+    console.log(`[${date}] collecting date:${date}`);
     try {
-      // 抛出试探性的数据，判断这次时间筛选是否超过1000，如果超过1000,分成两半，如果还超出，暂不处理
+      // 抛出试探性的数据，判断这次时间筛选是否超过1000，如果超出，暂不处理
+      this.lockSourceNum++;
       const resp = await this._getIssues({ date });
       const data = [];
-      if (resp?.total_count < 1000) {
-        const perPage = 100;
-        const pageNums = Math.ceil(resp?.total_count / 100);
-        for (let i = 0; i < pageNums; i++) {
-          try {
-            const res = await this._getIssues({ date, perPage, pageNum: i });
-            data.push(...(res?.items || []));
-          } catch (e) {
-            console.log('get github api error', e);
-          }
-        }
-      } else {
-        // 暂不搜集，等后续确定逻辑
-        console.log('data length > 1000');
+      if (resp?.total_count) {
         try {
           await this.issueCollectRepositiry.save(
             this._getIssueCollect({
               createdDate: date,
-              collectNum: 0,
               hasNum: resp?.total_count || 0,
             }),
           );
         } catch (e) {
-          console.log('save issue collect error:', e);
+          console.log(`[${date}] save issue collect error:`, e.message);
+        }
+        if (resp?.total_count <= 1000) {
+          const perPage = 100;
+          const pageNums = Math.ceil(resp?.total_count / 100);
+          this.lockSourceNum += pageNums;
+          console.log(`[${date}] all:%d`, resp?.total_count);
+          for (let i = 0; i < pageNums; i++) {
+            try {
+              const res = await this._getIssues({
+                date,
+                perPage,
+                pageNum: i + 1,
+              });
+              data.push(...(res?.items || []));
+            } catch (e) {
+              console.log(`[${date}] get github api error:`, e.message);
+            }
+          }
         }
       }
       return data;
@@ -147,9 +167,6 @@ export class IssueService {
 
   // 获取issues
   async collectFirstIssues(): Promise<any> {
-    // 最小时间 2000-01-01
-    // 开始收集时间 数据中收集记录中的最大的created
-    // 目前每天更新一次
     let curDate = dayjs(dayjs().format('YYYY-MM-DD'));
     const lastCollectedTime =
       (
@@ -158,42 +175,60 @@ export class IssueService {
         )
       )?.[0]?.['max(createdDate)'] || curDate;
     let lastDate = dayjs(dayjs(lastCollectedTime).format('YYYY-MM-DD'));
-    const intervalId = setInterval(() => {
+    new Array(30).fill(0).forEach(() => {
       if (lastDate.isBefore(curDate)) {
-        ((lastDate) => {
-          setTimeout(async () => {
-            console.log('current timestep:', new Date().getTime(), '\n');
-            const data = await this._collectPerDate({
-              date: lastDate.format('YYYY-MM-DD'),
-            });
-            console.log(`collected %d`, data.length);
-            let collected = 0;
-            for (let inx = 0; inx < data.length; inx++) {
-              let d = data[inx];
-              try {
-                await this.issueRepository.save(this._getNewIssue(d));
-                collected++;
-              } catch (e) {
-                console.log(e);
-              }
-            }
-            try {
-              await this.issueCollectRepositiry.save(
-                this._getIssueCollect({
-                  createdDate: lastDate.format('YYYY-MM-DD'),
-                  collectNum: collected,
-                  hasNum: data?.length || 0,
-                }),
-              );
-            } catch (e) {
-              console.log('save issue collect error:', e);
-            }
-          }, 0);
-        })(lastDate);
-      } else {
-        clearInterval(intervalId);
+        this.dateQueue.push(lastDate.format('YYYY-MM-DD'));
+        lastDate = lastDate.add(1, 'day');
       }
-      lastDate = lastDate.add(1, 'day');
-    }, 2500 / Math.ceil(octokits.length / 2));
+    });
+    const preMinuteIntervalId = setInterval(() => {
+      this._initAuthMap();
+      // 每分钟向dateQueue中推入20个date
+      new Array(30).fill(0).forEach(() => {
+        if (lastDate.isBefore(curDate)) {
+          this.dateQueue.push(lastDate.format('YYYY-MM-DD'));
+          lastDate = lastDate.add(1, 'day');
+        }
+      });
+    }, 60 * 1000);
+
+    setInterval(async () => {
+      console.log(`date queue length:${this.dateQueue.length}`);
+      console.log(`lockSource Num:${this.lockSourceNum}`);
+      if (octokits.length * 30 - this.lockSourceNum > 0) {
+        const date = this.dateQueue.shift();
+        if (date) {
+          console.log(`[${date}] current timestep:`, new Date().getTime());
+          const data = await this._collectPerDate({
+            date,
+          });
+          let collected = 0;
+          for (let inx = 0; inx < data.length; inx++) {
+            let d = data[inx];
+            try {
+              await this.issueRepository.save(this._getNewIssue(d));
+              collected++;
+            } catch (e) {
+              console.log(e.message);
+            }
+          }
+          console.log(`[${date}] collected:%d`, collected);
+          try {
+            await this.issueCollectRepositiry.save(
+              this._getIssueCollect({
+                createdDate: date,
+                collectNum: collected,
+              }),
+            );
+          } catch (e) {
+            console.log(`[${date}] save issue collect error:`, e);
+          }
+        } else {
+          console.log(`waiting for dateQueue update...`);
+        }
+      } else {
+        console.log(`waiting for source release...`);
+      }
+    }, 2000);
   }
 }

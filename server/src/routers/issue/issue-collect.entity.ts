@@ -7,11 +7,11 @@ export class IssueCollect {
   createdDate: string;
 
   // 收集条数
-  @Column()
+  @Column({ default: 0 })
   collectNum: number;
 
   // 这天有的条数
-  @Column()
+  @Column({ default: 0 })
   hasNum: number;
 
   // 收集时间
