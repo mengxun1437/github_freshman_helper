@@ -19,7 +19,7 @@ export class Issue {
   issueLinkedPr: boolean;
 
   // 如果issue关联pr，pr的信息 JSON.stringify(pull_request)
-  @Column({ default: '{}' })
+  @Column({ type: 'text' })
   issueLinkedPrInfo: string;
 
   // issue的api_url
@@ -44,5 +44,5 @@ export class Issue {
 
   // 收集时间
   @Column()
-  collectedTime:string
+  collectedTime: string;
 }
