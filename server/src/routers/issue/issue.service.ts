@@ -15,7 +15,7 @@ export class IssueService {
     private readonly issueCollectRepositiry: Repository<IssueCollect>,
   ) {}
 
-  private authIndex : number = 0
+  private authIndex: number = 0;
   // 判断issue是否已经存在
   async _issueExistsById(issueId) {
     try {
@@ -29,17 +29,17 @@ export class IssueService {
     }
   }
 
-  getOctokits(){
-      const authIndex = this.authIndex
-      if(this.authIndex < octokits.length - 1){
-          this.authIndex ++
-      }else{
-          this.authIndex = 0
-      }
-      return {
-          authIndex,
-          octokit:octokits[authIndex]
-      }
+  getOctokits() {
+    const authIndex = this.authIndex;
+    if (this.authIndex < octokits.length - 1) {
+      this.authIndex++;
+    } else {
+      this.authIndex = 0;
+    }
+    return {
+      authIndex,
+      octokit: octokits[authIndex],
+    };
   }
 
   // 收集
@@ -53,8 +53,8 @@ export class IssueService {
     perPage?: number;
   }): Promise<any> {
     try {
-      const { octokit , authIndex} = this.getOctokits()
-      console.log(`using octokit authIndex:${authIndex}`)
+      const { octokit, authIndex } = this.getOctokits();
+      console.log(`using octokit authIndex:${authIndex}`);
       const resp = await octokit.request('GET /search/issues', {
         q: `created:${date} label:"good first issue"`,
         per_page: perPage,
@@ -80,6 +80,7 @@ export class IssueService {
     collectNum: number;
     hasNum: number;
   }) {
+    console.log('collect created date:', createdDate);
     const newIssueCollect = new IssueCollect();
     newIssueCollect.createdDate = createdDate;
     newIssueCollect.collectNum = collectNum;
@@ -157,40 +158,42 @@ export class IssueService {
         )
       )?.[0]?.['max(createdDate)'] || curDate;
     let lastDate = dayjs(dayjs(lastCollectedTime).format('YYYY-MM-DD'));
-    const fakeInterval = async (lastDate) => {
+    const intervalId = setInterval(() => {
       if (lastDate.isBefore(curDate)) {
-        setTimeout(async () => {
-          const data = await this._collectPerDate({
-            date: lastDate.format('YYYY-MM-DD'),
-          });
-          console.log(`collected %d`, data.length);
-          let collected = 0;
-          data.forEach((d) => {
-            try {
-              this.issueRepository.save(this._getNewIssue(d));
-              collected++;
-            } catch (e) {
-              console.log(e);
+        ((lastDate) => {
+          setTimeout(async () => {
+            console.log('current timestep:', new Date().getTime(), '\n');
+            const data = await this._collectPerDate({
+              date: lastDate.format('YYYY-MM-DD'),
+            });
+            console.log(`collected %d`, data.length);
+            let collected = 0;
+            for (let inx = 0; inx < data.length; inx++) {
+              let d = data[inx];
+              try {
+                await this.issueRepository.save(this._getNewIssue(d));
+                collected++;
+              } catch (e) {
+                console.log(e);
+              }
             }
-          });
-          try {
-            await this.issueCollectRepositiry.save(
-              this._getIssueCollect({
-                createdDate: lastDate.format('YYYY-MM-DD'),
-                collectNum: collected,
-                hasNum: data?.length || 0,
-              }),
-            );
-          } catch (e) {
-            console.log('save issue collect error:', e);
-          }
-          lastDate = lastDate.add(1, 'day');
-          await fakeInterval(lastDate);
-        }, 2500 / octokits.length);
+            try {
+              await this.issueCollectRepositiry.save(
+                this._getIssueCollect({
+                  createdDate: lastDate.format('YYYY-MM-DD'),
+                  collectNum: collected,
+                  hasNum: data?.length || 0,
+                }),
+              );
+            } catch (e) {
+              console.log('save issue collect error:', e);
+            }
+          }, 0);
+        })(lastDate);
       } else {
-        return;
+        clearInterval(intervalId);
       }
-    };
-    await fakeInterval(lastDate);
+      lastDate = lastDate.add(1, 'day');
+    }, 2500 / Math.ceil(octokits.length / 2));
   }
 }
