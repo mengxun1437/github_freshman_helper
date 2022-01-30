@@ -71,6 +71,7 @@ export class IssueService {
         }
       } else {
         // 暂不搜集，等后续确定逻辑
+        console.log('data length > 1000')
       }
       return data;
     } catch {
@@ -103,8 +104,8 @@ export class IssueService {
     const lastCollectedTime =
       (
         await this.issueRepository.query('select max(issueCreated) from issue')
-      )?.[0]?.['max(issueCreated)'] || '2006-02-21';
-    let lastDate = dayjs(dayjs('2006-02-21').format('YYYY-MM-DD'));
+      )?.[0]?.['max(issueCreated)'] || '2007-01-01';
+    let lastDate = dayjs(dayjs('2007-01-01').format('YYYY-MM-DD'));
     let curDate = dayjs(dayjs().format('YYYY-MM-DD'));
     const fakeInterval = async (lastDate) => {
       if (lastDate.isBefore(curDate)) {
