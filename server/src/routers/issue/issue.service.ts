@@ -231,4 +231,31 @@ export class IssueService {
       }
     }, 2000);
   }
+
+  // 批量获取issueTitle缺失的部分
+  async fixIssueTitleLost(): Promise<any> {
+    const issueTitlsLostList = await this.issueRepository.find({
+      issueTitle: '',
+    });
+    console.log('issueTitlsLostList length:', issueTitlsLostList.length);
+    for (let i = 0; i < issueTitlsLostList.length; i++) {
+      const issue = issueTitlsLostList[i];
+      try {
+        console.log(`\ntrying to fix title lost index: ${i} titleId:${issue.issueId}`)
+        const resp = await octokits[i % octokits.length].request(
+          `GET ${issue.issueApiUrl?.slice(22)}`,
+        );
+        console.log(
+          `authIndex:${i % octokits.length} resp status:${resp?.status}`,
+        );
+        if (resp?.status === 200) {
+          issue.issueTitle = resp?.data?.title || '';
+          await this.issueRepository.save(issue);
+        }
+      } catch (e) {
+        console.log(e.message);
+      }
+    }
+    return issueTitlsLostList;
+  }
 }
