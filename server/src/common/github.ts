@@ -1,10 +1,10 @@
 import { Octokit, App } from "octokit";
-import { GITHUB_AUTH } from "./constants";
+import { GITHUB_AUTH_LIST } from "./constants";
 
-const octokit = new Octokit({ auth: GITHUB_AUTH });
+const octokits = GITHUB_AUTH_LIST.map(auth => new Octokit({auth}))
 
 
 export {
-    octokit
+    octokits
 }
 

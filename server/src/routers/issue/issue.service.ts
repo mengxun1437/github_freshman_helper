@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { octokit } from 'src/common/github';
+import { octokits } from 'src/common/github';
 import { Repository } from 'typeorm';
 import { Issue } from './issue.entity';
 import * as dayjs from 'dayjs';
@@ -14,6 +14,8 @@ export class IssueService {
     @InjectRepository(IssueCollect)
     private readonly issueCollectRepositiry: Repository<IssueCollect>,
   ) {}
+
+  private authIndex : number = 0
   // 判断issue是否已经存在
   async _issueExistsById(issueId) {
     try {
@@ -27,6 +29,15 @@ export class IssueService {
     }
   }
 
+  getOctokits(){
+      if(this.authIndex < octokits.length - 1){
+          this.authIndex ++
+      }else{
+          this.authIndex = 0
+      }
+      return octokits[this.authIndex]
+  }
+
   // 收集
   async _getIssues({
     date = '',
@@ -38,6 +49,8 @@ export class IssueService {
     perPage?: number;
   }): Promise<any> {
     try {
+      const octokit = this.getOctokits()
+      console.log(`using octokit authIndex:${this.authIndex}`)
       const resp = await octokit.request('GET /search/issues', {
         q: `created:${date} label:"good first issue"`,
         per_page: perPage,
@@ -132,12 +145,14 @@ export class IssueService {
     // 最小时间 2000-01-01
     // 开始收集时间 数据中收集记录中的最大的created
     // 目前每天更新一次
+    let curDate = dayjs(dayjs().format('YYYY-MM-DD'));
     const lastCollectedTime =
       (
-        await this.issueRepository.query('select max(createdDate) from issue_collect')
-      )?.[0]?.['max(createdDate)'] || '2007-01-01';
+        await this.issueRepository.query(
+          'select max(createdDate) from issue_collect',
+        )
+      )?.[0]?.['max(createdDate)'] || curDate;
     let lastDate = dayjs(dayjs(lastCollectedTime).format('YYYY-MM-DD'));
-    let curDate = dayjs(dayjs().format('YYYY-MM-DD'));
     const fakeInterval = async (lastDate) => {
       if (lastDate.isBefore(curDate)) {
         setTimeout(async () => {
@@ -167,7 +182,7 @@ export class IssueService {
           }
           lastDate = lastDate.add(1, 'day');
           await fakeInterval(lastDate);
-        }, 2500);
+        }, 2500 / octokits.length);
       } else {
         return;
       }
