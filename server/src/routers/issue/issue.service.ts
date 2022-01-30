@@ -5,6 +5,8 @@ import { Repository } from 'typeorm';
 import { Issue } from './issue.entity';
 import * as dayjs from 'dayjs';
 import { IssueCollect } from './issue-collect.entity';
+import * as lodash from 'lodash';
+const { chunk } = lodash;
 
 @Injectable()
 export class IssueService {
@@ -238,24 +240,32 @@ export class IssueService {
       issueTitle: '',
     });
     console.log('issueTitlsLostList length:', issueTitlsLostList.length);
-    for (let i = 0; i < issueTitlsLostList.length; i++) {
-      const issue = issueTitlsLostList[i];
-      try {
-        console.log(`\ntrying to fix title lost index: ${i} titleId:${issue.issueId}`)
-        const resp = await octokits[i % octokits.length].request(
-          `GET ${issue.issueApiUrl?.slice(22)}`,
-        );
-        console.log(
-          `authIndex:${i % octokits.length} resp status:${resp?.status}`,
-        );
-        if (resp?.status === 200) {
-          issue.issueTitle = resp?.data?.title || '';
-          await this.issueRepository.save(issue);
+    const series = chunk(issueTitlsLostList, octokits.length);
+    let i = 0;
+    setInterval(async () => {
+      if (i < series.length) {
+        const curGroup = series[i];
+        for (let j = 0; j < curGroup.length; j++) {
+          try {
+            const issue = curGroup[j];
+            console.log(
+              `\ntrying to fix title lost index: (${i},${j}) titleId:${issue.issueId}`,
+            );
+            const resp = await octokits[j].request(
+              `GET ${issue.issueApiUrl?.slice(22)}`,
+            );
+            console.log(`authIndex:${j} resp status:${resp?.status}`);
+            if (resp?.status === 200) {
+              issue.issueTitle = resp?.data?.title || '';
+              this.issueRepository.save(issue);
+            }
+          } catch (e) {
+            console.log(e.message);
+          }
         }
-      } catch (e) {
-        console.log(e.message);
+        i++;
       }
-    }
+    }, 500);
     return issueTitlsLostList;
   }
 }
