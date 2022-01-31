@@ -16,7 +16,7 @@ axios.interceptors.response.use((res) => {
     return {};
   }
 });
-export const _get = async (url: string, params: any) => {
+export const _get = async (url: string, params: any = {}) => {
   return await axios({
     baseURL: "http://localhost:10310",
     timeout: 0,
@@ -29,3 +29,11 @@ export const _get = async (url: string, params: any) => {
 export const GET_ISSUES_PAGINATE = async (params: any) => {
   return await _get(`/issue/getIssuesPaginate`, params);
 };
+
+export const GET_ISSUES_BASIC_INFO = async() => {
+  return await _get('/issue/getIssuesBasicInfo')
+}
+
+export const GET_ISSUE_INFO_BY_ISSUE_ID = async (issueId:number) =>{
+  return await _get(`issue/issueInfo/${issueId}`)
+}

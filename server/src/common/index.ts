@@ -1,4 +1,5 @@
 import { octokits } from "./github"
+import process from 'process'
 
 export const formatGithubApi = (api) => api.slice(22)
 
@@ -15,3 +16,6 @@ export const randomRequest = async (api) => {
         return null
     }
 }
+
+export const PROD_ENV = process?.env?.NODE_ENV === 'production'
+export const DEV_ENV = process?.env?.NODE_ENV === 'dev'

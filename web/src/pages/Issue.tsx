@@ -1,56 +1,56 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import Iframe from "react-iframe";
 import { useEffect, useState } from "react";
-import { GET_ISSUES_PAGINATE } from "../api/api";
-import { PageHeader, Tag, Button, Statistic, Descriptions, Row } from 'antd';
+import {
+  GET_ISSUES_BASIC_INFO,
+  GET_ISSUE_INFO_BY_ISSUE_ID,
+} from "../api/api";
+import { DataViewPageHeader } from "../components/DataViewPageHeader";
+import { IssueTable } from "../components/IssueTable";
+import { PROD_ENV } from "../common";
 
 export const Issue = () => {
   const { issueId } = useParams();
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [pageNum, setPageNum] = useState(20);
-  const [tableData, setTableData] = useState<any>([]);
-  const [collectInfo,setCollectInfo] = useState<any>({})
+  const [issuesBasicInfo, setIssuesBasicInfo] = useState<any>({});
+  const [issueInfo, setIssueInfo] = useState<any>({});
+  const [issueHtmlContent, setIssueHtmlContent] = useState<string>("");
 
   useEffect(() => {
     if (issueId) {
+      GET_ISSUE_INFO_BY_ISSUE_ID(Number(issueId)).then((data: any) => {
+        setIssueInfo(data);
+      });
     } else {
-      GET_ISSUES_PAGINATE({ page, pageNum }).then((data: any) => {
-        const { items = [] } = data;
-        setTableData(items);
+      GET_ISSUES_BASIC_INFO().then((data) => {
+        setIssuesBasicInfo(data || {});
       });
     }
   }, [issueId]);
   if (issueId) {
+    const { issue, issueModel } = issueInfo;
+    if (!issue?.issueHtmlUrl) return <></>;
+    const iframeUrl = `${
+      PROD_ENV ? "api.mengxun.online/gfh" : "localhost:10310"
+    }/util/getGitHubPage?target=${issue?.issueHtmlUrl}/`;
     return (
       <div>
-        <Iframe
-          url="http://www.youtube.com/embed/xDMP3i36naA"
+        {/* <Iframe
+          url={iframeUrl}
           width="100%"
           height={`${window.innerHeight}px`}
           id={issueId}
-        />
+        /> */}
+        <iframe src='www.baidu.com'></iframe>
       </div>
     );
   }
-  return <div>
-        <>
-    <PageHeader
-      title="数据总览"
-    >
-      <Row>
-        <Statistic title="issue总数" value={collectInfo?.totalItems} />
-        <Statistic
-          title="Price"
-          prefix="$"
-          value={568.08}
-          style={{
-            margin: '0 32px',
-          }}
-        />
-        <Statistic title="Balance" prefix="$" value={3345.08} />
-      </Row>
-    </PageHeader>
-  </>,
-  </div>;
+  return (
+    <div>
+      <>
+        <DataViewPageHeader {...issuesBasicInfo} />
+        <IssueTable />
+      </>
+    </div>
+  );
 };

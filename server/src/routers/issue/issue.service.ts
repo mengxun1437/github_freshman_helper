@@ -7,6 +7,7 @@ import * as dayjs from 'dayjs';
 import { IssueCollect } from './issue-collect.entity';
 import * as lodash from 'lodash';
 import { formatGithubApi } from '../../common/index';
+import { IssueModel } from '../issue-model/issue-model.entity';
 const { chunk } = lodash;
 import {
   paginate,
@@ -19,6 +20,8 @@ export class IssueService {
   constructor(
     @InjectRepository(Issue)
     private readonly issueRepository: Repository<Issue>,
+    @InjectRepository(IssueModel)
+    private readonly issueModelRepository: Repository<IssueModel>,
     @InjectRepository(IssueCollect)
     private readonly issueCollectRepositiry: Repository<IssueCollect>,
   ) {
@@ -28,6 +31,47 @@ export class IssueService {
   private authMap: { [index: number]: number } = {};
   private dateQueue: string[] = [];
   private lockSourceNum: number = 0;
+
+  // 通过issueId获取具体内容
+  async getIssueInfoByIssueId(issueId: number) {
+    const issue = await this.issueRepository.findOne({
+      issueId,
+    });
+    const issueModel = await this.issueModelRepository.findOne(issueId);
+    return {
+      issue,
+      issueModel,
+    };
+  }
+
+  // 获取基本信息
+  async getIssuesBasicInfo() {
+    const totalIssuesNum = await this.issueRepository.count();
+    const openIssuesNum = await this.issueRepository.count({
+      issueState: 'open',
+    });
+    const closeIssuesNum = await this.issueRepository.count({
+      issueState: 'closed',
+    });
+    const linkedPrIssuesNum = await this.issueRepository.count({
+      issueLinkedPr: true,
+    });
+    const reposNum =
+      Number(
+        (
+          await this.issueRepository.query(
+            'SELECT COUNT(DISTINCT issueRepo)  AS count FROM issue',
+          )
+        )?.[0]?.count,
+      ) || 0;
+    return {
+      totalIssuesNum,
+      openIssuesNum,
+      closeIssuesNum,
+      reposNum,
+      linkedPrIssuesNum,
+    };
+  }
 
   // 获取issues分页
   async getIssuesPaginate(
@@ -178,6 +222,9 @@ export class IssueService {
       (newIssue.issueLinkedPrInfo = JSON.stringify(d?.pull_request || {})),
       (newIssue.issueApiUrl = d?.url),
       (newIssue.issueHtmlUrl = d?.html_url),
+      (newIssue.issueRepo = d?.html_url
+        ?.slice(18)
+        ?.match(/(?<=\/).*?\/.*?(?=\/)/g)?.[0]),
       (newIssue.issueCommentsApiUrl = d?.comments_url),
       (newIssue.issueCreated = d?.created_at),
       (newIssue.issueUpdated = d?.updated_at),

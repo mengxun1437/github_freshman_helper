@@ -7,16 +7,27 @@ import { Issue } from './issue.entity';
 export class IssueController {
   constructor(private readonly issueService: IssueService) {}
 
+  @Get('/issueInfo/:issueId')
+  async getIssueInfoByIssueId(@Param('issueId') issueId:number){
+    return await this.issueService.getIssueInfoByIssueId(issueId)
+  }
+
   @Get('/getIssuesPaginate')
-  async index(
+  async getIssuesPaginate(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
   ): Promise<Pagination<Issue>> {
     limit = limit > 100 ? 100 : limit;
     return this.issueService.getIssuesPaginate({
       page,
-      limit
+      limit,
     });
+  }
+
+  // 获取issues的基本信息
+  @Get('/getIssuesBasicInfo')
+  async getIssuesBasicInfo() {
+    return await this.issueService.getIssuesBasicInfo();
   }
 
   @Get('/collectFirstIssues')
@@ -48,15 +59,9 @@ export class IssueController {
     if (type === 'fixIssueTitleLost') {
       return await this.issueService.fixIssueTitleLost();
     }
-    if(type === 'fixIssueAddRepo'){
-        await this.issueService.fixIssueAddRepo()
+    if (type === 'fixIssueAddRepo') {
+      await this.issueService.fixIssueAddRepo();
     }
-  }
-
-  // 获取看板的数据
-  @Get('/getViewData')
-  async getViewData(){
-
   }
 
 }
