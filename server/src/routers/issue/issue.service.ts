@@ -32,8 +32,11 @@ export class IssueService {
   // 获取issues分页
   async getIssuesPaginate(
     options: IPaginationOptions,
+    where = {},
   ): Promise<Pagination<Issue>> {
-    const queryBuilder = this.issueRepository.createQueryBuilder('issue');
+    let queryBuilder = this.issueRepository
+      .createQueryBuilder('issue')
+      .where(where);
     queryBuilder.orderBy('issue.issueCreated', 'DESC');
     return paginate<Issue>(queryBuilder, options);
   }
@@ -287,28 +290,43 @@ export class IssueService {
   // 将repo添加到数据库字段中
   async fixIssueAddRepo(): Promise<any> {
     // 分页处理
-    const totalNum = await this.issueRepository
-      .createQueryBuilder('issue')
-      .getCount();
-    const limit = 1000;
+    const totalNum = await this.issueRepository.count({
+      issueRepo: '',
+    });
+    const limit = 500;
     const pageNum = Math.ceil(totalNum / limit);
+    let totalFixed = 0;
     for (let i = 0; i < pageNum; i++) {
       setTimeout(async () => {
-        const items =
-          (await this.getIssuesPaginate({ limit, page: i + 1 }))?.items || [];
-        items.forEach((item) => {
-          if (item?.issueId && item?.issueHtmlUrl) {
-            const repo = item?.issueHtmlUrl
-              ?.slice(18)
-              .match(/(?<=\/).*?\/.*?(?=\/)/g)?.[0];
-            console.log(repo);
-            this.issueRepository.save({
-              issueId: item?.issueId,
-              issueRepo: repo,
-            });
+        try {
+          const items =
+            (
+              await this.getIssuesPaginate(
+                { limit, page: i + 1 },
+                { issueRepo: '' },
+              )
+            )?.items || [];
+          for (let j = 0; j < items.length; j++) {
+            let item = items[j];
+            if (item?.issueId && item?.issueHtmlUrl) {
+              const repo = item?.issueHtmlUrl
+                ?.slice(18)
+                .match(/(?<=\/).*?\/.*?(?=\/)/g)?.[0];
+              const issue = await this.issueRepository.findOne({issueId:item?.issueId})
+              await this.issueRepository.save({
+                  ...issue,
+                  issueRepo:repo
+              })
+              totalFixed += 1;
+            }
           }
-        });
-      }, 0);
+          console.log(
+            `[${((totalFixed * 100) / totalNum).toFixed(
+              2,
+            )}%] 总数：${totalNum} 已修复：${totalFixed}`,
+          );
+        } catch {}
+      }, i * 1000);
     }
   }
 }
