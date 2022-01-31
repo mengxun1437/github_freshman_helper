@@ -295,7 +295,7 @@ export class IssueService {
       issueRepo: '',
     });
     console.log(totalNum);
-    const limit = 3000;
+    const limit = 1000;
     const pageNum = Math.ceil(totalNum / limit);
     let totalFixed = 0;
     for (let i = 0; i < pageNum; i++) {
@@ -314,20 +314,23 @@ export class IssueService {
               const repo = item?.issueHtmlUrl
                 ?.slice(18)
                 .match(/(?<=\/).*?\/.*?(?=\/)/g)?.[0];
-              this.issueRepository.save({
+              await this.issueRepository.save({
                 ...item,
                 issueRepo: repo,
               });
+              console.log(`${item?.issueId} ${repo}`);
               totalFixed += 1;
+              if (totalFixed % 100 === 0) {
+                console.log(
+                  `[${((totalFixed * 100) / totalNum).toFixed(
+                    2,
+                  )}%] 总数：${totalNum} 已修复：${totalFixed}`,
+                );
+              }
             }
           }
-          console.log(
-            `[${((totalFixed * 100) / totalNum).toFixed(
-              2,
-            )}%] 总数：${totalNum} 已修复：${totalFixed}`,
-          );
         } catch {}
-      }, i * 2000);
+      }, i * 5000);
     }
   }
 }
