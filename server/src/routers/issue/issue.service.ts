@@ -295,7 +295,7 @@ export class IssueService {
       issueRepo: '',
     });
     console.log(totalNum);
-    const limit = 1000;
+    const limit = 3000;
     const pageNum = Math.ceil(totalNum / limit);
     let totalFixed = 0;
     for (let i = 0; i < pageNum; i++) {
@@ -327,7 +327,7 @@ export class IssueService {
             )}%] 总数：${totalNum} 已修复：${totalFixed}`,
           );
         } catch {}
-      }, i * 1000);
+      }, i * 2000);
     }
   }
 }
