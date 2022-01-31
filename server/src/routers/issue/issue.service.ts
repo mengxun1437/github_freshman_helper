@@ -290,10 +290,12 @@ export class IssueService {
   // 将repo添加到数据库字段中
   async fixIssueAddRepo(): Promise<any> {
     // 分页处理
+    console.log('counting');
     const totalNum = await this.issueRepository.count({
       issueRepo: '',
     });
-    const limit = 500;
+    console.log(totalNum);
+    const limit = 1000;
     const pageNum = Math.ceil(totalNum / limit);
     let totalFixed = 0;
     for (let i = 0; i < pageNum; i++) {
@@ -312,11 +314,10 @@ export class IssueService {
               const repo = item?.issueHtmlUrl
                 ?.slice(18)
                 .match(/(?<=\/).*?\/.*?(?=\/)/g)?.[0];
-              const issue = await this.issueRepository.findOne({issueId:item?.issueId})
-              await this.issueRepository.save({
-                  ...issue,
-                  issueRepo:repo
-              })
+              this.issueRepository.save({
+                ...item,
+                issueRepo: repo,
+              });
               totalFixed += 1;
             }
           }
