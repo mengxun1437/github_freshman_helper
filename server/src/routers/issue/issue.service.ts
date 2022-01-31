@@ -1,12 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { octokits } from 'src/common/github';
-import { Repository } from 'typeorm';
+import { InjectConnection, InjectRepository } from '@nestjs/typeorm';
+import { octokits } from '../../common/github';
+import { Connection, Repository } from 'typeorm';
 import { Issue } from './issue.entity';
 import * as dayjs from 'dayjs';
 import { IssueCollect } from './issue-collect.entity';
 import * as lodash from 'lodash';
+import { formatGithubApi } from '../../common/index';
 const { chunk } = lodash;
+import {
+  paginate,
+  Pagination,
+  IPaginationOptions,
+} from 'nestjs-typeorm-paginate';
 
 @Injectable()
 export class IssueService {
@@ -22,6 +28,15 @@ export class IssueService {
   private authMap: { [index: number]: number } = {};
   private dateQueue: string[] = [];
   private lockSourceNum: number = 0;
+
+  // 获取issues分页
+  async getIssuesPaginate(
+    options: IPaginationOptions,
+  ): Promise<Pagination<Issue>> {
+    const queryBuilder = this.issueRepository.createQueryBuilder('issue');
+    queryBuilder.orderBy('issue.issueCreated', 'DESC');
+    return paginate<Issue>(queryBuilder, options);
+  }
 
   // 初始化请求资源
   _initAuthMap() {
@@ -252,7 +267,7 @@ export class IssueService {
               `\ntrying to fix title lost index: (${i},${j}) titleId:${issue.issueId}`,
             );
             const resp = await octokits[j].request(
-              `GET ${issue.issueApiUrl?.slice(22)}`,
+              `GET ${formatGithubApi(issue.issueApiUrl)}`,
             );
             console.log(`authIndex:${j} resp status:${resp?.status}`);
             if (resp?.status === 200) {
@@ -267,5 +282,33 @@ export class IssueService {
       }
     }, 500);
     return issueTitlsLostList;
+  }
+
+  // 将repo添加到数据库字段中
+  async fixIssueAddRepo(): Promise<any> {
+    // 分页处理
+    const totalNum = await this.issueRepository
+      .createQueryBuilder('issue')
+      .getCount();
+    const limit = 1000;
+    const pageNum = Math.ceil(totalNum / limit);
+    for (let i = 0; i < pageNum; i++) {
+      setTimeout(async () => {
+        const items =
+          (await this.getIssuesPaginate({ limit, page: i + 1 }))?.items || [];
+        items.forEach((item) => {
+          if (item?.issueId && item?.issueHtmlUrl) {
+            const repo = item?.issueHtmlUrl
+              ?.slice(18)
+              .match(/(?<=\/).*?\/.*?(?=\/)/g)?.[0];
+            console.log(repo);
+            this.issueRepository.save({
+              issueId: item?.issueId,
+              issueRepo: repo,
+            });
+          }
+        });
+      }, 0);
+    }
   }
 }

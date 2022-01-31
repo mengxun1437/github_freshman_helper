@@ -42,6 +42,10 @@ export class Issue {
   @Column()
   issueUpdated: string;
 
+  // issue对应的仓库
+  @Column()
+  issueRepo:string
+
   // 收集时间
   @Column()
   collectedTime: string;
