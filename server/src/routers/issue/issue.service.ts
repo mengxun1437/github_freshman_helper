@@ -318,7 +318,7 @@ export class IssueService {
                 ...item,
                 issueRepo: repo,
               });
-              console.log(`${item?.issueId} ${repo}`);
+              // console.log(`${item?.issueId} ${repo}`);
               totalFixed += 1;
               if (totalFixed % 100 === 0) {
                 console.log(
