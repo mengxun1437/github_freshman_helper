@@ -21,12 +21,13 @@ export class IssueController {
   async getIssuesPaginate(
     @Query('page') page: number = 1,
     @Query('pageNum') limit: number = 20,
+    @Query('where') where:any = "{}"
   ): Promise<Pagination<Issue>> {
     limit = limit > 100 ? 100 : limit;
     return this.issueService.getIssuesPaginate({
       page,
-      limit,
-    });
+      limit
+    },JSON.parse(where));
   }
 
   // 获取issues的基本信息

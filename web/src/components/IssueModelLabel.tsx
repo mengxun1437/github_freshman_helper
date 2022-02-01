@@ -38,6 +38,7 @@ export const IssueModelLabel = (props: any) => {
 
   const handleClick = (isGood: boolean | undefined) => {
     if (isGood === isGoodForFreshman) return;
+    setLoading(true)
     UPDATE_ISSUE_MODEL({
       ...modelInfo,
       issueId: issue?.issueId,
@@ -46,12 +47,12 @@ export const IssueModelLabel = (props: any) => {
       .then(() => {
         message.success("收集成功");
         setIsGoodForFreshman(isGood);
-        setLoading(false);
       })
       .catch((e) => {
-        message.error("收集失败", e.message);
-        setLoading(false);
-      });
+        message.error("收集失败", e.message);;
+      }).finally(() => {
+          setLoading(false)
+      })
   };
 
   return (
@@ -99,12 +100,12 @@ export const IssueModelLabel = (props: any) => {
             GET_A_UNLABEL_ISSUE_ID()
               .then((data: any) => {
                 window.location.href = `${window.location.origin}/issue/${data}`;
-                nextIssueIdRequestingRef.current = false;
               })
               .catch((e) => {
                 message.error(e.message);
+              }).finally(() => {
                 nextIssueIdRequestingRef.current = false;
-              });
+              })
           }}
         >
           下一个

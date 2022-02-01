@@ -87,8 +87,7 @@ export class IssueService {
     where = {},
   ): Promise<Pagination<Issue>> {
     let queryBuilder = this.issueRepository
-      .createQueryBuilder('issue')
-      .where(where);
+      .createQueryBuilder('issue').where(where)
     queryBuilder.orderBy('issue.issueCreated', 'DESC');
     return paginate<Issue>(queryBuilder, options);
   }
