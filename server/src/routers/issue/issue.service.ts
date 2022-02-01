@@ -32,6 +32,14 @@ export class IssueService {
   private dateQueue: string[] = [];
   private lockSourceNum: number = 0;
 
+  // 获取一个没有打标签的issue
+  async getAUnlabelIssueId(){
+    const issue = await this.issueRepository.findOne({
+      isGoodTag:null
+    })
+    return issue?.issueId
+  }
+
   // 通过issueId获取具体内容
   async getIssueInfoByIssueId(issueId: number) {
     const issue = await this.issueRepository.findOne({

@@ -9,8 +9,8 @@ import { Column, Entity, PrimaryColumn } from 'typeorm';
  */
 @Entity()
 export class IssueModel {
-  @PrimaryColumn()
-  id: number;
+  @PrimaryColumn({ type: 'bigint' })
+  issueId: number;
 
   // 是否适合新手解决
   @Column({ default: null })
@@ -47,7 +47,7 @@ export class IssueModel {
 
   // 提问题的人
   // 创建issue的人的github注册时间戳
-  @Column()
+  @Column({ type: 'bigint' })
   creatorCreated: number;
 
   // 创建issue的人的跟随者

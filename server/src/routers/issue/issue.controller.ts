@@ -7,6 +7,11 @@ import { Issue } from './issue.entity';
 export class IssueController {
   constructor(private readonly issueService: IssueService) {}
 
+  @Get('/getAUnlabelIssueId')
+  async getAUnlabelIssueId(){
+    return this.issueService.getAUnlabelIssueId()
+  }
+
   @Get('/issueInfo/:issueId')
   async getIssueInfoByIssueId(@Param('issueId') issueId:number){
     return await this.issueService.getIssueInfoByIssueId(issueId)
@@ -15,7 +20,7 @@ export class IssueController {
   @Get('/getIssuesPaginate')
   async getIssuesPaginate(
     @Query('page') page: number = 1,
-    @Query('limit') limit: number = 20,
+    @Query('pageNum') limit: number = 20,
   ): Promise<Pagination<Issue>> {
     limit = limit > 100 ? 100 : limit;
     return this.issueService.getIssuesPaginate({

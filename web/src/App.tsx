@@ -9,7 +9,6 @@ function App() {
       <Route path="/" element={<Index />} />
       <Route path="/issue" element={<Issue />} />
       <Route path="/issue/:issueId" element={<Issue />} />
-      <Route path="*" element={<Index />} />
     </Routes>
   );
 }

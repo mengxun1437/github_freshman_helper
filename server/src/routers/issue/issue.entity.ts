@@ -3,7 +3,7 @@ import { Entity, Column, PrimaryColumn } from 'typeorm';
 @Entity()
 export class Issue {
   // issue id
-  @PrimaryColumn()
+  @PrimaryColumn({ type: 'bigint' })
   issueId: number;
 
   // issue的title
@@ -44,9 +44,14 @@ export class Issue {
 
   // issue对应的仓库
   @Column()
-  issueRepo:string
+  issueRepo: string;
 
   // 收集时间
   @Column()
   collectedTime: string;
+
+  // 是否适合新手
+  // Null 没有标签 0 不适合 1适合
+  @Column({ default: null })
+  isGoodTag: boolean;
 }
