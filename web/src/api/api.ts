@@ -1,6 +1,6 @@
 import axios from "axios";
 import { notification } from "antd";
-import { PROD_ENV } from "../common/index";
+import { BASE_SERVER_URL } from '../common/index';
 axios.interceptors.response.use((res) => {
   try {
     if (res?.status === 200) {
@@ -17,9 +17,8 @@ axios.interceptors.response.use((res) => {
     return {};
   }
 });
-const baseURL = PROD_ENV
-  ? "http://api.mengxun.online/gfh"
-  : "http://localhost:10310";
+
+const baseURL = BASE_SERVER_URL
 
 export const _get = async (url: string, params: any = {}) => {
   return await axios({

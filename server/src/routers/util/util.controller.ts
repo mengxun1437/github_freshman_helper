@@ -1,6 +1,6 @@
 import { Controller, Get, Query, Req, Res } from '@nestjs/common';
-const https = require('https')
-const url = require('url')
+const https = require('https');
+const url = require('url');
 import { Response, Request } from 'express';
 
 @Controller('util')
@@ -12,27 +12,29 @@ export class UtilController {
     @Res() res: Response,
     @Req() req: Request,
   ) {
-    const targetURL = url.parse(target)
-    const options = {
+    try {
+      const targetURL = url.parse(target);
+      const options = {
         hostname: targetURL.hostname,
         port: 443,
         path: url.format(targetURL),
-        method: "GET"
+        method: 'GET',
       };
-    const proxy = https.request(options, _res => {
+      const proxy = https.request(options, (_res) => {
         // 3.修改响应头
-        const fieldsToRemove = ["x-frame-options", "content-security-policy"];
-        Object.keys(_res.headers).forEach(field => {
+        const fieldsToRemove = ['x-frame-options', 'content-security-policy'];
+        Object.keys(_res.headers).forEach((field) => {
           if (!fieldsToRemove.includes(field.toLocaleLowerCase())) {
             res.setHeader(field, _res.headers[field]);
           }
         });
         _res.pipe(res, {
-          end: true
+          end: true,
         });
       });
       req.pipe(proxy, {
-        end: true
+        end: true,
       });
+    } catch {}
   }
 }
