@@ -1,6 +1,6 @@
 import axios from "axios";
 import { notification } from "antd";
-import { PROD_ENV } from '../../../server/src/common/index';
+import { PROD_ENV } from '../common/index'
 axios.interceptors.response.use((res) => {
   try {
     if (res?.status === 200) {

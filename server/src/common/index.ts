@@ -1,9 +1,9 @@
 import { octokits } from "./github"
 import process from 'process'
 
-export const formatGithubApi = (api) => api.slice(22)
+export const formatGithubApi = (api:any) => api.slice(22)
 
-export const randomRequest = async (api) => {
+export const randomRequest = async (api:any) => {
     if(!api) return null
     try{
         const octokit = octokits[Math.floor(Math.random()*octokits.length)]
@@ -18,4 +18,4 @@ export const randomRequest = async (api) => {
 }
 
 export const PROD_ENV = process?.env?.NODE_ENV === 'production'
-export const DEV_ENV = process?.env?.NODE_ENV === 'dev'
+export const DEV_ENV = process?.env?.NODE_ENV === 'development'

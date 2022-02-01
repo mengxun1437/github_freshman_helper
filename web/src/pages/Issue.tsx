@@ -7,7 +7,7 @@ import {
 } from "../api/api";
 import { DataViewPageHeader } from "../components/DataViewPageHeader";
 import { IssueTable } from "../components/IssueTable";
-import { PROD_ENV } from "../common";
+import { PROD_ENV } from "../common/index";
 
 export const Issue = () => {
   const { issueId } = useParams();
