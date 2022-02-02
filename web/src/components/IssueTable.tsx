@@ -157,7 +157,7 @@ export const IssueTable = (props: any) => {
   const formOptions = [
     {
       name: "issueState",
-      desc:'issue状态',
+      desc: "issue状态",
       selectOptions: [
         { label: "所有状态", value: "all" },
         { label: "open", value: "open" },
@@ -166,7 +166,7 @@ export const IssueTable = (props: any) => {
     },
     {
       name: "issueLinkedPr",
-      desc:'pr信息',
+      desc: "pr信息",
       selectOptions: [
         { label: "所有状态", value: "all" },
         { label: "有pr", value: true },
@@ -175,7 +175,7 @@ export const IssueTable = (props: any) => {
     },
     {
       name: "isGoodTag",
-      desc:'标签',
+      desc: "标签",
       selectOptions: [
         { label: "所有状态", value: "all" },
         { label: "无标签", value: null },
@@ -200,12 +200,18 @@ export const IssueTable = (props: any) => {
       >
         {formOptions.map((formOption) => {
           return (
-            <div style={{ display: "flex", flexDirection: "row" ,alignItems:'center'}}>
-              <Tag  color='blue' style={{ marginLeft: 10 }}>{formOption.desc}</Tag>
-              <Form.Item
-                key={formOption.name}
-                name={formOption.name}
-              >
+            <div
+              key={`${formOption.name}-div`}
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
+              <Tag color="blue" style={{ marginLeft: 10 }}>
+                {formOption.desc}
+              </Tag>
+              <Form.Item name={formOption.name}>
                 <Select
                   onChange={handleRefreshTable}
                   style={{ width: 100 }}

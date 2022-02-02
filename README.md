@@ -17,7 +17,7 @@ Good First Issue是github中适合新手入门的任务。本课题希望分析�
 
 #### 对数据进行统计分析并展示
 
-- 共有多少个项目，多少’good first issue’
+- 共有多少个项目，多少’good first issue’s
 - 有多少’good first issue’ closed,有多少能找到对应的pull request或者commit
 - 有多少’good first issue’是新手解决的，有多少新手之后参与项目
 

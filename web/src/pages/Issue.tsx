@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { GET_ISSUES_BASIC_INFO, GET_ISSUE_INFO_BY_ISSUE_ID } from "../api/api";
 import { DataViewPageHeader } from "../components/DataViewPageHeader";
 import { IssueTable } from "../components/IssueTable";
-import { BASE_SERVER_URL } from "../common/index";
+import { BASE_PROXY_URL } from "../common/index";
 import { IssueModelLabel } from "../components/IssueModelLabel";
 import { Spin } from "antd";
 
@@ -31,7 +31,7 @@ export const Issue = () => {
       });
     }
   }, [issueId]);
-  
+
   if (loading) {
     return (
       <div
@@ -50,9 +50,7 @@ export const Issue = () => {
     if (issueId) {
       const { issue, issueModel } = issueInfo;
       if (!issue?.issueHtmlUrl) return <></>;
-      const iframeUrl = `${BASE_SERVER_URL}/util/getGitHubPage?target=${encodeURIComponent(
-        issue?.issueHtmlUrl
-      )}/`;
+      const iframeUrl = `${BASE_PROXY_URL}/githubIssue/${issue?.issueHtmlUrl?.slice(18)}`;
       return (
         <div>
           <Iframe
