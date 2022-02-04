@@ -63,13 +63,21 @@ export const UPDATE_ISSUE_MODEL = async (issueModel: any) => {
 };
 
 export const GET_ISSUE_MODEL_CONFIG = async (issueId: number) => {
-  return await _get(`/issueModel/${issueId}`);
+  return await _get(`/issueModel/modelInfo/${issueId}`);
+};
+
+export const GET_ISSUE_MODELS_PAGINATE = async (params: any) => {
+  return await _get(`/issueModel/getIssueModelsPaginate`, params);
+};
+
+export const GET_ISSUE_MODELS_BASIC_INFO = async () => {
+  return await _get("/issueModel/getIssueModelsBasicInfo");
 };
 
 // other
 export const GET_LOG_FROM_QINIU = async (type:string,sourceId:string) => {
   return await axios({
-    url:`http://qiniu-gfh.mengxun.online/${type}/${sourceId}.log`,
+    url:`http://qiniu-gfh.mengxun.online/${type}/${sourceId}.config`,
     timeout:0,
     headers:{
       'Content-Type':"application/json"

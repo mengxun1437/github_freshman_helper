@@ -16,6 +16,14 @@ export class IssueModel {
   @Column({ default: null })
   isGoodForFreshman: boolean;
 
+  // 创建日期
+  @Column({ default: new Date().getTime(), type: 'bigint' })
+  createdAt: number;
+
+  // 更新日期
+  @Column({ default: new Date().getTime(), type: 'bigint' })
+  updateAt: number;
+
   // 问题本身
   // title长度
   @Column()

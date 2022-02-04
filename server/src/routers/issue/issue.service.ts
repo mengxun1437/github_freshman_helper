@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { InjectConnection, InjectRepository } from '@nestjs/typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 import { octokits } from '../../common/github';
-import { Connection, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Issue } from './issue.entity';
 import * as dayjs from 'dayjs';
 import { IssueCollect } from './issue-collect.entity';

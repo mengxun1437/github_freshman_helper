@@ -17,6 +17,7 @@
 
 # server
 server/src/common/constants.ts
+**/graph
 
 # model
 model/config
@@ -24,4 +25,5 @@ model/**/*.pyc
 model/venv
 model/.idea
 model/**/__pycache__
-model/**/.qiniu*.json
+**/.qiniu*.json
+**/.supervised_graph

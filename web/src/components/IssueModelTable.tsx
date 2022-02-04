@@ -1,10 +1,9 @@
-import { Table, Typography, Button, Tag, Form, Select } from "antd";
-import { BranchesOutlined } from "@ant-design/icons";
+import { Table, Tag, Form, Select } from "antd";
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { GET_ISSUES_PAGINATE } from "../api/api";
-const { Text } = Typography;
-export const IssueTable = (props: any) => {
+import { GET_ISSUE_MODELS_PAGINATE } from "../api/api";
+import dayjs from "dayjs";
+
+export const IssueModelTable = (props: any) => {
   const [data, setData] = useState<any>([]);
   const [page, setPage] = useState(1);
   const [pageNum, setPageNum] = useState(10);
@@ -26,12 +25,11 @@ export const IssueTable = (props: any) => {
     setPage(_page);
     setPageNum(_pageNum);
     setDataLoading(true);
-    GET_ISSUES_PAGINATE({
+    GET_ISSUE_MODELS_PAGINATE({
       page: _page,
       pageNum: _pageNum,
       where: _where,
     }).then((data: any) => {
-      // console.log(data);
       const { items = [], meta = {} } = data;
       setData(items);
       setMetaInfo(meta);
@@ -63,108 +61,97 @@ export const IssueTable = (props: any) => {
       fixed: true,
     },
     {
-      title: "issue标题",
-      dataIndex: "issueTitle",
-      key: "issueTitle",
-      render: (text: any) => (
-        <Text style={{ width: 200 }} ellipsis={{ tooltip: text }}>
-          {text}
-        </Text>
-      ),
-    },
-    {
-      title: "issue状态",
-      dataIndex: "issueState",
-      key: "issueState",
+      title: "标签",
+      dataIndex: "isGoodForFreshman",
+      key: "isGoodForFreshman",
+      fixed:true,
       render: (text: any) =>
-        text === "open" ? (
-          <Tag color="#2da44e">Open</Tag>
-        ) : (
-          <Tag color="#8250df">Closed</Tag>
-        ),
-    },
-    {
-      title: "关联的pr信息",
-      dataIndex: "issueLinkedPrInfo",
-      key: "issueLinkedPrInfo",
-      render: (text: any) => {
-        const issueLinkedPrInfo = JSON.parse(text);
-        return Object.keys(issueLinkedPrInfo).length ? (
-          <BranchesOutlined
-            style={{ color: "blue" }}
-            onClick={() => window.open(issueLinkedPrInfo?.html_url, "_blank")}
-          />
-        ) : (
-          "-"
-        );
-      },
-    },
-    {
-      title: "issue详情",
-      dataIndex: "issueHtmlUrl",
-      key: "issueHtmlUrl",
-      render: (text: any, record: any) => (
-        <Button type="link">
-          <Link target="_blank" to={`/label/${record?.issueId}`}>
-            查看
-          </Link>
-        </Button>
-      ),
-    },
-    {
-      title: "对应的仓库",
-      dataIndex: "issueRepo",
-      key: "issueRepo",
-      render: (text: any) => (
-        <Text style={{ width: 200 }} ellipsis={{ tooltip: text }}>
-          <Button
-            type="link"
-            onClick={() => window.open(`https://github.com/${text}`, "_blank")}
-          >
-            {text}
-          </Button>
-        </Text>
-      ),
-    },
-    {
-      title: "模型标签",
-      dataIndex: "isGoodTag",
-      key: "isGoodTag",
-      render: (text: any) =>
-        text === null ? (
-          "-"
-        ) : text === true ? (
+        text === true ? (
           <Tag color="#1297da">good</Tag>
         ) : (
           <Tag color="#d81f06">bad</Tag>
         ),
     },
     {
-      title: "创建时间",
-      dataIndex: "issueCreated",
-      key: "issueCreated",
-      render: (text: any) => <div>{text}</div>,
+      title: "issue标题长度",
+      dataIndex: "titleLength",
+      key: "titleLength",
     },
     {
-      title: "更新时间",
-      dataIndex: "issueUpdated",
-      key: "issueUpdated",
-      render: (text: any) => <div>{text}</div>,
+      title: "issue内容长度",
+      dataIndex: "bodyLength",
+      key: "bodyLength",
     },
+    {
+      title: "评论数",
+      dataIndex: "commentsNum",
+      key: "commentsNum",
+    },
+    {
+      title: "评论总长度",
+      dataIndex: "commentsTotalLength",
+      key: "commentsTotalLength",
+    },
+    {
+      title: "参与人数",
+      dataIndex: "participantsNum",
+      key: "participantsNum",
+    },
+    {
+      title: "受让人数",
+      dataIndex: "assigneesNum",
+      key: "assigneesNum",
+    },
+    {
+      title: "是否链接PR",
+      dataIndex: "isLinkedPr",
+      key: "isLinkedPr",
+      render: (text: any) => (text ? "是" : "否"),
+    },
+    {
+      title: "发起人平台注册时间",
+      dataIndex: "creatorCreated",
+      key: "creatorCreated",
+      render: (text: any) => dayjs(text).format("YYYY-MM-DD HH:mm:ss"),
+    },
+    {
+      title: "发起人平台跟随人数",
+      dataIndex: "creatorFollowers",
+      key: "creatorFollowers",
+    },
+    {
+      title: "仓库star数",
+      dataIndex: "starNum",
+      key: "starNum",
+    },
+    {
+      title: "仓库open issues数目",
+      dataIndex: "openIssuesNum",
+      key: "openIssuesNum",
+    },
+    {
+      title: "仓库是否在组织下",
+      dataIndex: "hasOrganization",
+      key: "hasOrganization",
+      render: (text: any) => (text ? "是" : "否"),
+    },
+    {
+        title: "标签生成时间",
+        dataIndex: "createAt",
+        key: "createAt",
+        render: (text: any) => dayjs(text).format("YYYY-MM-DD HH:mm:ss"),
+      },
+      {
+        title: "标签更新时间",
+        dataIndex: "updateAt",
+        key: "updateAt",
+        render: (text: any) => dayjs(text).format("YYYY-MM-DD HH:mm:ss"),
+      },
   ];
 
   const formOptions = [
     {
-      name: "issueState",
-      desc: "issue状态",
-      selectOptions: [
-        { label: "所有状态", value: "all" },
-        { label: "open", value: "open" },
-        { label: "closed", value: "closed" },
-      ],
-    },
-    {
-      name: "issueLinkedPr",
+      name: "isLinkedPr",
       desc: "pr信息",
       selectOptions: [
         { label: "所有状态", value: "all" },
@@ -173,7 +160,7 @@ export const IssueTable = (props: any) => {
       ],
     },
     {
-      name: "isGoodTag",
+      name: "isGoodForFreshman",
       desc: "标签",
       selectOptions: [
         { label: "所有状态", value: "all" },
@@ -192,9 +179,8 @@ export const IssueTable = (props: any) => {
         layout="inline"
         name="form_in_modal"
         initialValues={{
-          issueState: "all",
-          issueLinkedPr: "all",
-          isGoodTag: "all",
+          isLinkedPr: "all",
+          isGoodForFreshman: "all"
         }}
       >
         {formOptions.map((formOption) => {
@@ -225,9 +211,9 @@ export const IssueTable = (props: any) => {
         style={{
           marginTop: 8,
           padding: "0 10px",
-          height:'100%'
+          height: "100%",
         }}
-        scroll={{ y: 520 }}
+        scroll={{ x:2000, y: 520 }}
         rowKey={(record: any) => record?.issueId}
         columns={columns}
         dataSource={data}

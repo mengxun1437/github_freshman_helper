@@ -99,7 +99,7 @@ export const IssueModelLabel = (props: any) => {
             nextIssueIdRequestingRef.current = true;
             GET_A_UNLABEL_ISSUE_ID()
               .then((data: any) => {
-                window.location.href = `${window.location.origin}/issue/${data}`;
+                window.location.href = `${window.location.origin}/label/${data}`;
               })
               .catch((e) => {
                 message.error(e.message);

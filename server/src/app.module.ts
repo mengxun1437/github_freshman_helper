@@ -9,10 +9,13 @@ import { IssueService } from './routers/issue/issue.service';
 import { IssueModelController } from './routers/issue-model/issue-model.controller';
 import { IssueModelService } from './routers/issue-model/issue-model.service';
 import { IssueModelModule } from './routers/issue-model/issue-model.module';
+import { ModelController } from './routers/model/model.controller';
+import { ModelService } from './routers/model/model.service';
+import { ModelModule } from './routers/model/model.module';
 
 @Module({
-  imports: [TypeOrmModule.forRoot(MYSQL_CONNECT_CONFIG),IssueModule, IssueModelModule],
-  controllers: [AppController,IssueController, IssueModelController],
-  providers: [AppService,IssueService, IssueModelService],
+  imports: [TypeOrmModule.forRoot(MYSQL_CONNECT_CONFIG),IssueModule, IssueModelModule, ModelModule],
+  controllers: [AppController,IssueController, IssueModelController, ModelController],
+  providers: [AppService,IssueService, IssueModelService, ModelService],
 })
 export class AppModule {}

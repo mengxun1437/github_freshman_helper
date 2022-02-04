@@ -1,16 +1,15 @@
 import "./App.css";
 import { Routes, Route } from "react-router-dom";
 import { Index } from "./pages/Index";
-import { Issue } from './pages/Issue';
-import { Log } from "./pages/Log";
+import { Admin } from "./pages/Admin";
+import { IssueLabel } from './pages/IssueLabel';
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<Index />} />
-      <Route path="/issue" element={<Issue />} />
-      <Route path="/log/:type/:sourceId" element={<Log />} />
-      <Route path="/issue/:issueId" element={<Issue />} />
+      <Route path='/admin' element={<Admin />} />
+      <Route path='/label/:issueId' element={<IssueLabel />} />
     </Routes>
   );
 }

@@ -4,6 +4,11 @@ import { Repository } from 'typeorm';
 import { Issue } from '../issue/issue.entity';
 import { IssueModel } from './issue-model.entity';
 import { formatGithubApi, randomRequest } from '../../common/index';
+import {
+  IPaginationOptions,
+  paginate,
+  Pagination,
+} from 'nestjs-typeorm-paginate';
 
 @Injectable()
 export class IssueModelService {
@@ -60,10 +65,42 @@ export class IssueModelService {
   }
 
   async updateModel(issueModel: any) {
-    await this.issueModelRepository.save(issueModel);
+    await this.issueModelRepository.save({
+      ...issueModel,
+      updateAt: new Date().getTime(),
+    })
     await this.issueRepository.save({
       issueId: issueModel?.issueId,
-      isGoodTag:issueModel?.isGoodForFreshman,
+      isGoodTag: issueModel?.isGoodForFreshman,
     });
   }
+
+  // 获取issue model分页
+  async getIssueModelsPaginate(
+    options: IPaginationOptions,
+    where = {},
+  ): Promise<Pagination<IssueModel>> {
+    let queryBuilder = this.issueModelRepository
+      .createQueryBuilder()
+      .where(where);
+    queryBuilder.orderBy('updateAt', 'DESC');
+    return paginate<IssueModel>(queryBuilder, options);
+  }
+
+  // 获取基本信息
+  async getIssueModelsBasicInfo() {
+    const totalIssueModelsNum = await this.issueModelRepository.count();
+    const goodTagsNum = await this.issueModelRepository.count({
+      isGoodForFreshman: true,
+    });
+    const badTagsNum = await this.issueModelRepository.count({
+      isGoodForFreshman: false,
+    });
+    return {
+      totalIssueModelsNum,
+      goodTagsNum,
+      badTagsNum
+    };
+  }
+
 }

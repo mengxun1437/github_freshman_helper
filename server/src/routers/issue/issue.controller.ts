@@ -24,7 +24,7 @@ export class IssueController {
     @Query('where') where:any = "{}"
   ): Promise<Pagination<Issue>> {
     limit = limit > 100 ? 100 : limit;
-    return this.issueService.getIssuesPaginate({
+    return await this.issueService.getIssuesPaginate({
       page,
       limit
     },JSON.parse(where));
