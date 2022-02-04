@@ -17,3 +17,11 @@
 
 # server
 server/src/common/constants.ts
+
+# model
+model/config
+model/**/*.pyc
+model/venv
+model/.idea
+model/**/__pycache__
+model/**/.qiniu*.json

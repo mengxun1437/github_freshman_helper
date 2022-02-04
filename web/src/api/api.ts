@@ -65,3 +65,15 @@ export const UPDATE_ISSUE_MODEL = async (issueModel: any) => {
 export const GET_ISSUE_MODEL_CONFIG = async (issueId: number) => {
   return await _get(`/issueModel/${issueId}`);
 };
+
+// other
+export const GET_LOG_FROM_QINIU = async (type:string,sourceId:string) => {
+  return await axios({
+    url:`http://qiniu-gfh.mengxun.online/${type}/${sourceId}.log`,
+    timeout:0,
+    headers:{
+      'Content-Type':"application/json"
+    },
+    method:"GET"
+  })
+}
