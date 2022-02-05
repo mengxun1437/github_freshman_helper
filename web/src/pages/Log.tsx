@@ -1,14 +1,18 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router";
+import { BASE_PROXY_URL } from "../common";
+
+const getNewLogUrl = (logId:any) => `${BASE_PROXY_URL}/gfh-qiniu/log/${logId}.log?timestamp=${new Date().getTime()}`
 
 export const Log = () => {
   const { logId } = useParams();
   const [logUrl,setLogUrl] = useState('')
 
   useEffect(()=>{
+    setLogUrl(getNewLogUrl(logId))
       // 每10秒刷新
     setInterval(()=>{
-        setLogUrl(`http://api.mengxun.online/proxy/gfh-qiniu/log/${logId}.log?timestamp=${new Date().getTime()}`)
+        setLogUrl(getNewLogUrl(logId))
     },8000)
   },[])
 
@@ -23,7 +27,7 @@ export const Log = () => {
           id='log-iframe'
           width="100%"
           height={`${window.innerHeight}px`}
-          src={logUrl || `http://api.mengxun.online/proxy/gfh-qiniu/log/${logId}.log?timestamp=${new Date().getTime()}` }
+          src={logUrl}
         />
     </div>
   );
