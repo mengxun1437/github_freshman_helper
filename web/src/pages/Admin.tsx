@@ -3,20 +3,31 @@ import {
   BranchesOutlined,
   FolderAddOutlined,
   RocketOutlined,
+  StarOutlined,
 } from "@ant-design/icons";
 import { Layout, Menu, Spin } from "antd";
 import React, { useEffect, useState } from "react";
-import { GET_ISSUES_BASIC_INFO, GET_ISSUE_MODELS_BASIC_INFO } from "../api/api";
+import {
+  GET_ISSUES_BASIC_INFO,
+  GET_ISSUE_MODELS_BASIC_INFO,
+  GET_MODELS_BASIC_INFO,
+} from "../api/api";
 import { DataViewPageHeader } from "../components/DataViewPageHeader";
-import { IssueTable } from "../components/IssueTable";
 import "./Admin.css";
-import { IssueModelTable } from "../components/IssueModelTable";
+import { CustomTable } from "../components/CustomTable";
+import { Ability } from '../components/Ability';
+import {
+  issueTableProps,
+  issueModelTableProps,
+  modelTableProps,
+} from "../common/tables";
 const { Header, Content, Sider } = Layout;
 
 enum CONTENT_KEY {
   ISSUE = "ISSUE",
   ISSUE_MODEL = "ISSUE_MODEL",
   MODEL = "MODEL",
+  ABILITY = "ABILITY",
 }
 
 const siderList = [
@@ -35,6 +46,11 @@ const siderList = [
     icon: <RocketOutlined />,
     title: "模型",
   },
+  {
+    key: CONTENT_KEY.ABILITY,
+    icon: <StarOutlined />,
+    title: "功能",
+  },
 ];
 
 export const Admin = () => {
@@ -42,8 +58,10 @@ export const Admin = () => {
   const [contentKey, setContentKey] = useState(CONTENT_KEY.ISSUE);
   const [issuesBasicInfo, setIssuesBasicInfo] = useState<any>({});
   const [issueModelsBasicInfo, setIssueModelsBasicInfo] = useState<any>({});
+  const [modelsBasicInfo, setModelsBasicInfo] = useState<any>({});
   const [issueLoading, setIssueLoading] = useState(true);
   const [issueModelLoading, setIssueModelLoading] = useState(true);
+  const [modelLoading, setModelLoading] = useState(true);
 
   const issueViewHeaderData = [
     {
@@ -83,15 +101,55 @@ export const Admin = () => {
     },
   ];
 
+  const modelsViewHeaderData = [
+    {
+      title: "Models",
+      value: modelsBasicInfo?.totalModelsNum,
+    },
+    {
+      title: "Model Types",
+      value: modelsBasicInfo?.modelTypeNum,
+    },
+    {
+      title: "Model Programs",
+      value: modelsBasicInfo?.modelProgramNum,
+    },
+    {
+      title: "Model Frameworks",
+      value: modelsBasicInfo?.modelFrameworkNum,
+    },
+    {
+      title: "Training Models",
+      value: modelsBasicInfo?.modelTrainingNum,
+    },
+  ];
+
+  const pageLoadingContent = (
+    <div
+      style={{
+        height: "100%",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <Spin />
+    </div>
+  );
+
   useEffect(() => {
     GET_ISSUES_BASIC_INFO().then((data) => {
       setIssuesBasicInfo(data || {});
       setIssueLoading(false);
     });
     GET_ISSUE_MODELS_BASIC_INFO().then((data) => {
-        setIssueModelsBasicInfo(data || {});
-        setIssueModelLoading(false);
-      });
+      setIssueModelsBasicInfo(data || {});
+      setIssueModelLoading(false);
+    });
+    GET_MODELS_BASIC_INFO().then((data: any) => {
+      setModelsBasicInfo(data || {});
+      setModelLoading(false);
+    });
   }, []);
 
   return (
@@ -135,44 +193,38 @@ export const Admin = () => {
         >
           {contentKey === CONTENT_KEY.ISSUE ? (
             issueLoading ? (
-              <div
-                style={{
-                  height: "100%",
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <Spin />
-              </div>
+              pageLoadingContent
             ) : (
               <>
                 <DataViewPageHeader data={issueViewHeaderData} />
-                <IssueTable />
+                <CustomTable key={CONTENT_KEY.ISSUE} {...issueTableProps} />
               </>
             )
           ) : contentKey === CONTENT_KEY.ISSUE_MODEL ? (
             issueModelLoading ? (
-              <div
-                style={{
-                  height: "100%",
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <Spin />
-              </div>
+              pageLoadingContent
             ) : (
               <>
                 <DataViewPageHeader data={issueModelViewHeaderData} />
-                <IssueModelTable />
+                <CustomTable
+                  key={CONTENT_KEY.ISSUE_MODEL}
+                  {...issueModelTableProps}
+                />
               </>
             )
           ) : contentKey === CONTENT_KEY.MODEL ? (
-            "3"
+            modelLoading ? (
+              pageLoadingContent
+            ) : (
+              <>
+                <DataViewPageHeader data={modelsViewHeaderData} />
+                <CustomTable {...modelTableProps} />
+              </>
+            )
+          ) : contentKey === CONTENT_KEY.ABILITY ? (
+            <Ability />
           ) : (
-            "4"
+            <></>
           )}
         </Content>
       </Layout>

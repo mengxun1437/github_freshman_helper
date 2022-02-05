@@ -68,30 +68,5 @@ export class IssueModelController {
       }
     }
   }
-
-  // 接受模型预测返回结果
-  @Post('/predict/:bid')
-  async getPredictReport(@Body() body: any, @Param('bid') bid: string) {
-    console.log(body, bid);
-  }
-
-  @Post('/startPredict')
-  async startPredict(@Body() body: any) {
-    const { issueId, modelId } = body;
-    const bid = randomUUID();
-    console.log(bid);
-    try {
-      const issueModelInfo =
-        await this.issueModelService.getModelNeedDataByIssueId(issueId);
-      exec(
-        `python ../model/predict.py -i '${JSON.stringify({
-          ...issueModelInfo,
-          issueId,
-        })}' -m ${modelId} -b ${bid} ${PROD_ENV ? '' : '-l'}`,
-        () => {},
-      );
-    } catch (e) {
-      console.log(e);
-    }
-  }
+  
 }

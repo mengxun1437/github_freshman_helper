@@ -14,7 +14,7 @@ export const DataViewPageHeader = ({ data }: DataViewPageHeader) => {
         {data.map((d, i) => (
           <Statistic
             style={{
-              margin: i === 0 ? "0" : "0 32px",
+              margin: i === 0 ? "0" : "0 10px",
             }}
             key={`${d}-${i}`}
             title={d.title}

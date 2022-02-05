@@ -9,14 +9,14 @@ from common.qiniu_sdk import upload_data_to_bucket
 from common.api import update_model_config
 from sklearn import tree
 from sklearn.model_selection import train_test_split, GridSearchCV
-import json, pickle, graphviz, pydot, os.path, time, sys
+import json, pickle, graphviz, pydot, os.path, time, sys, atexit
 
 '''
 -m model_id
 -f framework
 -p program
 '''
-model_id = None
+global model_id
 model_framework = None
 model_program = None
 is_prod_env = True
@@ -35,6 +35,17 @@ try:
 except Exception as e:
     logger('get model id error: {}'.format(str(e)))
 
+
+def _update_model_config():
+    global model_id, is_prod_env
+    update_model_config({
+        "modelId": model_id,
+        "modelTraining": False
+    }, local=not is_prod_env)
+
+
+atexit.register(_update_model_config)
+
 # global
 data_sources = get_issue_models_list()
 data = list(map(lambda issue_model: issue_model[0:-1], data_sources))
@@ -51,17 +62,17 @@ def sklearn_decision_tree():
         logger('trying to get the best score...')
         get_score_start_time = int(round(time.time() * 1000))
 
-        # _max_depth = [5, 6, 7, 8, 9, 10, None]
-        # _min_samples_split = range(2, 11)
-        # _min_samples_leaf = range(2, 21)
-        # _random_state = [*range(1, 11), None]
-        # _max_features = ['auto', 'sqrt', 'log2', *range(1, len(issue_model_column_list) - 1)]
+        _max_depth = [5, 6, 7, 8, 9, 10, None]
+        _min_samples_split = range(2, 11)
+        _min_samples_leaf = range(2, 21)
+        _random_state = [*range(1, 11), None]
+        _max_features = ['auto', 'sqrt', 'log2', *range(1, len(issue_model_column_list) - 1)]
 
-        _max_depth = [5, 6, None]
-        _min_samples_split = range(2, 11, 5)
-        _min_samples_leaf = range(10, 40, 10)
-        _random_state = [*range(1, 11, 5), None]
-        _max_features = ['auto', 'sqrt', 'log2']
+        # _max_depth = [5, 6, None]
+        # _min_samples_split = range(2, 11, 5)
+        # _min_samples_leaf = range(10, 40, 10)
+        # _random_state = [*range(1, 11, 5), None]
+        # _max_features = ['auto', 'sqrt', 'log2']
 
         grid_search = GridSearchCV(estimator=DecisionTreeClassifier(criterion='gini'), param_grid={
             'max_depth': _max_depth,

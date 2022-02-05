@@ -40,4 +40,8 @@ export class Model {
 
   @Column({ default: new Date().getTime(), type: 'bigint' })
   createdAt: number;
+
+  // 程序对应的进程pid
+  @Column()
+  pid: number;
 }

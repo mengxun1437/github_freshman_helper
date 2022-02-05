@@ -1,12 +1,10 @@
 # -*- coding: UTF-8 -*-
-import json
+import time
 
 from common.common import qiniu_bucket_url, issue_model_column_list, gfh_prod_server_url, gfh_local_server_url
 from common.utils import logger
-import pickle
-import requests
-import sys
 from getopt import getopt
+import pickle, requests, sys, json
 
 '''
  i -> issue 模型需要预测的数据
@@ -44,11 +42,18 @@ try:
         print('predict_result: {}适合新手'.format('' if predict_result else '不'))
 
         if bid:
-            requests.post(
-                '{}/issueModel/predict/{}'.format(gfh_prod_server_url if is_prod_env else gfh_local_server_url, bid),
+            request_url = '{}/model/updateModelPredict'.format(
+                gfh_prod_server_url if is_prod_env else gfh_local_server_url)
+            resp = requests.post(
+                request_url,
                 data={
+                    'bid': bid,
+                    'modelId': model_id,
                     'isGoodForFreshman': predict_result
                 })
+            if resp.status_code != 200:
+                print('report predict error: {}'.format(resp.text))
+
 
     else:
         logger('get remote model from {} failed,error: {}'.format(model_url, resp))

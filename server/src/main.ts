@@ -6,6 +6,7 @@ declare const module: any;
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors();
+  app.enableShutdownHooks();
   app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');

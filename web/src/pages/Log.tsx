@@ -1,48 +1,37 @@
-import { Spin, Table } from "antd";
-import { useState, useEffect } from "react";
+import { Spin } from "antd";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router";
-import { GET_LOG_FROM_QINIU } from "../api/api";
-
-enum LogType {
-  SCORE = "score",
-  GRAPH = "graph",
-}
-const scoreColumns = [
-  "max_depth",
-  "min_samples_split",
-  "min_samples_leaf",
-  "random_state",
-  "min_weight_fraction_leaf",
-  "min_impurity_decrease",
-  "score",
-];
-const getRowKey = (record: any) => {
-  let rowKey = "";
-  scoreColumns.forEach((row) => (rowKey += record[row]));
-  return rowKey;
-};
+import { GET_SOURCE_FROM_QINIU } from "../api/api";
+import hljs from "highlight.js";
+import "highlight.js/styles/default.css";
 
 export const Log = () => {
-  const { type, sourceId } = useParams();
+  const { logId } = useParams();
   const [pageLoading, setPageLoading] = useState(true);
-  const [data, setData] = useState<any>([]);
+  const [content, setContent] = useState<string>("");
+  const codeRef = useRef<any>();
 
   useEffect(() => {
-    if (!type || !sourceId) return;
-    GET_LOG_FROM_QINIU(type, sourceId).then((data: any) => {
-      setData(data);
-      setPageLoading(false);
-    });
-  }, []);
-
-  const tableScoreColumns = scoreColumns.map((column) => ({
-    title: column,
-    dataIndex: column,
-    key: column,
-  }));
+    if (!logId) return;
+    GET_SOURCE_FROM_QINIU("log", logId)
+      .then((data: any) => {
+        setContent(data);
+      })
+      .catch(() => {
+        setContent("can not found this log file~");
+      })
+      .finally(() => {
+        setPageLoading(false);
+        try {
+          hljs.highlightBlock(codeRef.current);
+        } catch (e) {
+          console.log(e);
+        }
+      });
+  }, [logId]);
 
   return (
-    <div>
+    <div style={{height:window.innerHeight, backgroundColor:"black"}} >
       {pageLoading ? (
         <div
           style={{
@@ -55,16 +44,9 @@ export const Log = () => {
           <Spin />
         </div>
       ) : (
-        <Table
-          rowKey={(record: any) => getRowKey(record)}
-          style={{
-            marginTop: 8,
-            padding: "0 10px",
-          }}
-          columns={tableScoreColumns}
-          dataSource={data}
-          loading={pageLoading}
-        />
+        <pre>
+          <code style={{height:window.innerHeight, backgroundColor:"black"}} ref={codeRef}>{content}</code>
+        </pre>
       )}
     </div>
   );

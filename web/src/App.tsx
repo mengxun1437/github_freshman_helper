@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom";
 import { Index } from "./pages/Index";
 import { Admin } from "./pages/Admin";
 import { IssueLabel } from './pages/IssueLabel';
+import { Log } from "./pages/Log";
 
 function App() {
   return (
@@ -10,6 +11,7 @@ function App() {
       <Route path="/" element={<Index />} />
       <Route path='/admin' element={<Admin />} />
       <Route path='/label/:issueId' element={<IssueLabel />} />
+      <Route path='/log/:logId' element={<Log />} />
     </Routes>
   );
 }
