@@ -1,3 +1,4 @@
+const fs = require('fs');
 import { Body, Injectable, Post, OnModuleDestroy } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { exec, execSync } from 'child_process';
@@ -5,9 +6,6 @@ import { randomUUID } from 'crypto';
 import { PROD_ENV } from '../../common/index';
 import { Repository } from 'typeorm';
 import { Model } from './model.entity';
-import { uploadStreamToQiniu } from '../../common/qiniuSdk';
-import { Readable } from 'stream';
-import * as fs from 'fs/promises';
 import { QINIU_BUCKET_URL } from '../../common/constants';
 import { ModelPredict } from './model-predict.entity';
 import {
@@ -40,22 +38,24 @@ export class ModelService implements OnModuleDestroy {
 
   async onModuleDestroy(signal?: string) {
     // 程序异常退出时，删除所有正在跑的任务
-    // 不仅要删除记录，还要删除pid的进程 以及本地的日志文件
     try {
       const runningModels = await this.modelRepository.find({
-          modelTraining:true
-      })
-      for(let i =0; i< runningModels.length;i++){
-          const runningModel = runningModels[i]
-          if(runningModel.pid){
-              try{
-                  execSync(`kill -9 ${runningModel.pid}`)
-                  if(await fs.stat(`./log/${runningModel}.log`)){
-                      execSync(`rm ./log/${runningModel}.log`)
-                  }
-                  await this.modelRepository.delete(runningModel)
-              }catch{}
+        modelTraining: true,
+      });
+      for (let i = 0; i < runningModels.length; i++) {
+        const runningModel = runningModels[i];
+        if (runningModel.pid) {
+          try {
+            execSync(`kill -9 ${runningModel.pid}`);
+          } catch {}
+        }
+        try {
+          const logFile = `./.log/${runningModel.modelId}.log`;
+          if (fs.existsSync(logFile)) {
+            fs.rm(logFile, () => {});
           }
+        } catch {}
+        await this.modelRepository.delete(runningModel);
       }
     } catch {}
   }
@@ -138,27 +138,26 @@ export class ModelService implements OnModuleDestroy {
         modelTrainingLogUrl,
       });
 
-      const exec_command = `nohup python ../model/${modelType}.py -m ${modelId} -f ${modelFramework} -p ${modelProgram} ${
+      const exec_command = `python ../model/${modelType}.py -m ${modelId} -f ${modelFramework} -p ${modelProgram} ${
         PROD_ENV ? '' : '-l'
-      } > ${modelId}.log 2>&1 &`;
+      }`;
       const child = exec(exec_command, async (err: any, stdout: any) => {
-        console.log(err);
-        console.log(stdout);
         if (err) {
-          await this.modelRepository.delete({
+          const tmpModel = await this.modelRepository.findOne({
             modelId,
           });
-        } else {
-          await this.modelRepository.save({
+          try {
+            execSync(`kill -9 ${tmpModel.pid}`);
+          } catch {}
+          await this.modelRepository.delete({
             modelId,
-            modelTraining: false,
           });
         }
       });
       await this.modelRepository.save({
-          modelId,
-          pid:child.pid
-      })
+        modelId,
+        pid: child.pid,
+      });
 
       return {
         code: START_NEW_MODEL_STATUS_CODE.SUCCESS,
@@ -168,7 +167,6 @@ export class ModelService implements OnModuleDestroy {
         },
       };
     } catch (e) {
-      console.log(e);
       await this.modelRepository.delete({
         modelId,
       });
@@ -178,6 +176,8 @@ export class ModelService implements OnModuleDestroy {
       };
     }
   }
+
+  // TODO: 终止一个模型任务
 
   async updateModelConfig(config: any) {
     await this.modelRepository.save(config);
@@ -215,7 +215,6 @@ export class ModelService implements OnModuleDestroy {
 
       return predict || {};
     } catch (e) {
-      console.log(e);
       return {};
     }
   }

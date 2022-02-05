@@ -2,10 +2,10 @@
 # 监督式学习
 from getopt import getopt
 from sklearn.tree import DecisionTreeClassifier
-from common.utils import logger
+from common.utils import logger, set_interval
 from common.get_remote import get_issue_models_list
 from common.common import issue_model_column_list, qiniu_bucket_url
-from common.qiniu_sdk import upload_data_to_bucket
+from common.qiniu_sdk import upload_data_to_bucket, upload_file_to_bucket
 from common.api import update_model_config
 from sklearn import tree
 from sklearn.model_selection import train_test_split, GridSearchCV
@@ -16,7 +16,7 @@ import json, pickle, graphviz, pydot, os.path, time, sys, atexit
 -f framework
 -p program
 '''
-global model_id
+model_id = None
 model_framework = None
 model_program = None
 is_prod_env = True
@@ -35,16 +35,39 @@ try:
 except Exception as e:
     logger('get model id error: {}'.format(str(e)))
 
+# 将控制台输出打到文件中
+log_file = "{}/{}.log".format('.log', model_id)
+if not os.path.exists('.log'):
+    os.mkdir('.log')
+log_f = open(log_file, "w+")
+sys.stdout = log_f
 
+# 构造定时器,每 5 秒上传日志
+timer = set_interval(func=upload_file_to_bucket, args={
+    "key": 'log/{}.log'.format(model_id),
+    "local_file_path": log_file
+}, sec=5)
+
+
+@atexit.register
 def _update_model_config():
-    global model_id, is_prod_env
-    update_model_config({
-        "modelId": model_id,
-        "modelTraining": False
-    }, local=not is_prod_env)
+    global model_id, is_prod_env, log_f, log_file, timer
+    try:
+        update_model_config({
+            "modelId": model_id,
+            "modelTraining": False
+        }, local=not is_prod_env)
+        upload_file_to_bucket(key='log/{}.log'.format(model_id),
+                              local_file_path=log_file)
+        if log_f:
+            log_f.close()
+        if os.path.exists(log_file):
+            os.remove(log_file)
+        if timer:
+            timer.cancel()
+    except:
+        pass
 
-
-atexit.register(_update_model_config)
 
 # global
 data_sources = get_issue_models_list()
@@ -62,17 +85,17 @@ def sklearn_decision_tree():
         logger('trying to get the best score...')
         get_score_start_time = int(round(time.time() * 1000))
 
-        _max_depth = [5, 6, 7, 8, 9, 10, None]
-        _min_samples_split = range(2, 11)
-        _min_samples_leaf = range(2, 21)
-        _random_state = [*range(1, 11), None]
-        _max_features = ['auto', 'sqrt', 'log2', *range(1, len(issue_model_column_list) - 1)]
+        # _max_depth = [5, 6, 7, 8, 9, 10, None]
+        # _min_samples_split = range(2, 11)
+        # _min_samples_leaf = range(2, 21)
+        # _random_state = [*range(1, 11), None]
+        # _max_features = ['auto', 'sqrt', 'log2', *range(1, len(issue_model_column_list) - 1)]
 
-        # _max_depth = [5, 6, None]
-        # _min_samples_split = range(2, 11, 5)
-        # _min_samples_leaf = range(10, 40, 10)
-        # _random_state = [*range(1, 11, 5), None]
-        # _max_features = ['auto', 'sqrt', 'log2']
+        _max_depth = [5, 6, None]
+        _min_samples_split = range(2, 11, 5)
+        _min_samples_leaf = range(10, 40, 10)
+        _random_state = [*range(1, 11, 5), None]
+        _max_features = ['auto', 'sqrt', 'log2']
 
         grid_search = GridSearchCV(estimator=DecisionTreeClassifier(criterion='gini'), param_grid={
             'max_depth': _max_depth,
@@ -189,3 +212,5 @@ if model_id is not None and model_framework == 'sklearn' and model_program == 'd
     }, local=not is_prod_env)
 else:
     logger('have not get correct config, program exit')
+
+timer.cancel()

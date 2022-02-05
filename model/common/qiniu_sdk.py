@@ -13,8 +13,11 @@ def get_upload_token(key):
 
 
 def upload_file_to_bucket(key, local_file_path):
-    token = get_upload_token(key)
-    return put_file(token, key, file_path=local_file_path, version='v2')
+    try:
+        token = get_upload_token(key)
+        return put_file(token, key, file_path=local_file_path, version='v2')
+    except:
+        pass
 
 
 def upload_data_to_bucket(key, data):

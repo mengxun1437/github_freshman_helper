@@ -7,15 +7,15 @@ export class Model {
   modelId: string;
 
   // 监督式 半监督式 ...
-  @Column()
+  @Column({ default: 'supervised' })
   modelType: string;
 
   // 模型使用的算法
-  @Column()
+  @Column({ default: 'decision_tree' })
   modelProgram: string;
 
   // 模型使用的框架
-  @Column()
+  @Column({ default: 'sklearn' })
   modelFramework: string;
 
   // 跑模型的过程
@@ -42,6 +42,6 @@ export class Model {
   createdAt: number;
 
   // 程序对应的进程pid
-  @Column()
+  @Column({ default: null })
   pid: number;
 }

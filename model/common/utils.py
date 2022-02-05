@@ -14,3 +14,15 @@ def logger(str, not_next_line=False):
 def chunks_to_n(arr, m):
     n = int(math.ceil(len(arr) / float(m)))
     return [arr[i:i + n] for i in range(0, len(arr), n)]
+
+
+def set_interval(func, args, sec):
+    def func_wrapper():
+        set_interval(func, args, sec)
+        func(**args)
+
+    t = threading.Timer(sec, func_wrapper)
+    t.daemon = True
+    t.start()
+
+    return t

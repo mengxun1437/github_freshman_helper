@@ -1,6 +1,7 @@
 import axios from "axios";
 import { notification } from "antd";
 import { BASE_SERVER_URL } from "../common/index";
+
 axios.interceptors.response.use((res) => {
   try {
     if (res?.status === 200) {
@@ -95,14 +96,16 @@ export const START_RUN_A_MODEL = async () => {
 // other
 export const GET_SOURCE_FROM_QINIU = async (type: string, sourceId: string) => {
   let suffix = "log";
+  let contentType = 'text/plain'
   if (type === "score") {
     suffix = "config";
+    contentType = 'application/json'
   }
   return await axios({
-    url: `http://qiniu-gfh.mengxun.online/${type}/${sourceId}.${suffix}`,
+    url: `http://qiniu-gfh.mengxun.online/${type}/${sourceId}.${suffix}?timestamp=${new Date().getTime()}`,
     timeout: 0,
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": contentType,
     },
     method: "GET",
   });
