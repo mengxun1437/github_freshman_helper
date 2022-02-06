@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 # 监督式学习
 from getopt import getopt
+from matplotlib import pyplot as plt
 from sklearn.tree import DecisionTreeClassifier
 from common.utils import logger, set_interval
 from common.get_remote import get_issue_models_list
@@ -16,6 +17,7 @@ import json, pickle, graphviz, pydot, os.path, time, sys, atexit
 -f framework
 -p program
 '''
+
 model_id = None
 model_framework = None
 model_program = None
@@ -42,6 +44,11 @@ if not os.path.exists('.log'):
 log_f = open(log_file, "w+")
 sys.stdout = log_f
 
+# 打印出命令行参数
+logger(
+    'get python args: [model_id: {},framework: {},program: {},env: {}]'.format(model_id, model_framework, model_program,
+                                                                               'prod' if is_prod_env else 'local'))
+
 # 构造定时器,每 5 秒上传日志
 timer = set_interval(func=upload_file_to_bucket, args={
     "key": 'log/{}.log'.format(model_id),
@@ -55,10 +62,12 @@ def _update_model_config():
     try:
         update_model_config({
             "modelId": model_id,
+            "modelTrainingLogUrl": '{}/{}'.format(qiniu_bucket_url, 'log/{}.log'.format(model_id)),
             "modelTraining": False
         }, local=not is_prod_env)
         upload_file_to_bucket(key='log/{}.log'.format(model_id),
                               local_file_path=log_file)
+        time.sleep(3)
         if log_f:
             log_f.close()
         if os.path.exists(log_file):
@@ -80,48 +89,49 @@ x_train, x_test, y_train, y_test = train_test_split(data, targets, test_size=0.3
 def sklearn_decision_tree():
     logger("start building model : decision tree ")
     decision_tree_id = model_id
+    # _max_depth = [5, 6, 7, 8, 9, 10, None]
+    # _min_samples_split = range(2, 11)
+    # _min_samples_leaf = range(2, 21)
+    # _random_state = [*range(1, 11), None]
+    # _max_features = ['auto', 'sqrt', 'log2', *range(1, len(issue_model_column_list) - 1)]
 
-    def get_best_decision_tree_model():
-        logger('trying to get the best score...')
-        get_score_start_time = int(round(time.time() * 1000))
+    _max_depth = [*range(5, 12, 3), None]
+    _min_samples_split = range(2, 11, 3)
+    _min_samples_leaf = range(10, 40, 5)
+    _random_state = [*range(1, 11, 3), None]
+    _max_features = ['auto', 'sqrt', 'log2', *range(1, len(issue_model_column_list) - 1, 4)]
 
-        # _max_depth = [5, 6, 7, 8, 9, 10, None]
-        # _min_samples_split = range(2, 11)
-        # _min_samples_leaf = range(2, 21)
-        # _random_state = [*range(1, 11), None]
-        # _max_features = ['auto', 'sqrt', 'log2', *range(1, len(issue_model_column_list) - 1)]
+    time_start = None
+    time_end = None
 
-        _max_depth = [5, 6, None]
-        _min_samples_split = range(2, 11, 5)
-        _min_samples_leaf = range(10, 40, 10)
-        _random_state = [*range(1, 11, 5), None]
-        _max_features = ['auto', 'sqrt', 'log2']
+    def get_grid_search():
+        try:
+            nonlocal time_start, time_end, _max_depth, _min_samples_split, _min_samples_leaf, _random_state, _max_features
+            logger('trying to get the grid search...')
+            t_grid_search = GridSearchCV(estimator=DecisionTreeClassifier(criterion='gini'), param_grid={
+                'max_depth': _max_depth,
+                'min_samples_split': _min_samples_split,
+                'min_samples_leaf': _min_samples_leaf,
+                'random_state': _random_state,
+                'max_features': _max_features
+            }, scoring='accuracy', verbose=1, return_train_score=True)
+            time_start = time.time()
+            t_grid_search.fit(x_train, y_train)
+            time_end = time.time()
 
-        grid_search = GridSearchCV(estimator=DecisionTreeClassifier(criterion='gini'), param_grid={
-            'max_depth': _max_depth,
-            'min_samples_split': _min_samples_split,
-            'min_samples_leaf': _min_samples_leaf,
-            'random_state': _random_state,
-            'max_features': _max_features
-        }, scoring='roc_auc', verbose=2, return_train_score=True)
-        grid_search.fit(x_train, y_train)
+            # TODO: 训练过程进度展示
 
-        grid_search_best_params = grid_search.best_params_
-        grid_search_best_score = grid_search.best_score_
-        grid_search_best_model = grid_search.best_estimator_
-        # TODO: 训练过程可视化
-        # grid_search_scores = grid_search.cv_results_
-        best_score = grid_search.score(x_test, y_test)
+            return t_grid_search
 
-        get_score_end_time = int(round(time.time() * 1000))
-        logger('get best score successfully,time cost: {} ms'.format(get_score_end_time - get_score_start_time))
-        logger('best score in train: {} '
-               'best score in test: {}  '
-               'config: {}'.format(best_score, grid_search_best_score, grid_search_best_params))
+        except Exception as e:
+            logger('some error happened when get the grid search,error: {}'.format(str(e)))
+            exit()
+
+    def upload_best_model(_grid_search):
         try:
             logger('trying to upload the decision model to cloud')
             score_model = 'model/{}.pkl'.format(decision_tree_id)
-            model = pickle.dumps(grid_search_best_model)
+            model = pickle.dumps(_grid_search.best_estimator_)
             (ret, info) = upload_data_to_bucket(score_model, model)
             if info.status_code == 200:
                 logger('upload the decision model to cloud successfully!')
@@ -132,18 +142,54 @@ def sklearn_decision_tree():
             else:
                 logger('fail to upload the decision model to cloud,ret: {}, info: {}'.format(
                     ret, info))
-
         except Exception as e:
             logger('some error happened when score model to the cloud,error: {}'.format(str(e)))
 
+    # TODO: 训练过程图可视化
+    def upload_train_process_graph(_grid_search):
         try:
+            logger('trying to upload the train process graph to cloud')
+            _grid_results = _grid_search.cv_results_
+            _grid_mean_train_score = _grid_results['mean_train_score']
+            _grid_std_train_score = _grid_results['std_train_score']
+            _grid_mean_test_score = _grid_results['mean_test_score']
+            _grid_std_test_score = _grid_results['std_test_score']
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            fill_x = [*range(_grid_mean_test_score.size)]
+            ax.fill_between(fill_x, _grid_mean_train_score + _grid_std_train_score,
+                            _grid_mean_train_score - _grid_std_train_score, color='b')
+            ax.fill_between(fill_x, _grid_mean_test_score + _grid_std_test_score,
+                            _grid_mean_test_score - _grid_std_test_score, color='r')
+            ax.plot(fill_x, _grid_mean_train_score, 'ko-')
+            ax.plot(fill_x, _grid_mean_test_score, 'g*-')
+            plt.legend()
+            plt.title('GridSearchCV')
+            plt.show()
+        except Exception as e:
+            logger('some error happened when upload score process to the cloud,error: {}'.format(str(e)))
+
+    def upload_score_config(_grid_search):
+        global x_test, y_test
+        nonlocal time_start, time_end
+        _grid_results = _grid_search.cv_results_
+        _best_train_score = _grid_search.best_score_
+        _best_test_score = _grid_search.score(x_test, y_test)
+        _best_params = _grid_search.best_params_
+        try:
+            train_const_time = format(time_end - time_start, '.2f')
+            logger('get best score successfully,time cost: {} s'.format(train_const_time))
+            logger('best score in train: {} '
+                   'best score in test: {}  '
+                   'config: {}'.format(_best_train_score, _best_test_score, _best_params))
             logger('trying to upload the decision score config to cloud')
             score_log = 'score/{}.config'.format(decision_tree_id)
             (ret, info) = upload_data_to_bucket(score_log, json.dumps({
-                "best_test_score": best_score,
-                "best_train_score": grid_search_best_score,
-                "best_params": grid_search_best_params,
-                "training_cost": get_score_end_time - get_score_start_time
+                "best_test_score": _best_test_score,
+                "best_train_score": _best_train_score,
+                "best_params": _best_params,
+                "train_cost_time": train_const_time + 's',
+                "train_config_num": _grid_results['mean_train_score'].size
             }))
             if info.status_code == 200:
                 logger('upload the score config to cloud successfully!')
@@ -155,14 +201,12 @@ def sklearn_decision_tree():
                 logger('fail to upload the score config to cloud,ret: {}, info: {}'.format(
                     ret, info))
         except Exception as e:
-            logger('some error happened when score process to the cloud,error: {}'.format(str(e)))
+            logger('some error happened when upload score config to the cloud,error: {}'.format(str(e)))
 
-        return grid_search_best_model
-
-    def get_best_decision_tree_graph(_max_clf):
+    def upload_best_decision_tree_graph(_grid_search):
         try:
             logger('trying to upload the decision tree graph to cloud')
-            dot_data = tree.export_graphviz(_max_clf
+            dot_data = tree.export_graphviz(_grid_search.best_estimator_
                                             , feature_names=issue_model_column_list[0:-1]
                                             , filled=True
                                             , rounded=True
@@ -199,8 +243,11 @@ def sklearn_decision_tree():
             except:
                 pass
 
-    max_clf = get_best_decision_tree_model()
-    get_best_decision_tree_graph(max_clf)
+    grid_search = get_grid_search()
+    upload_best_model(grid_search)
+    # upload_train_process_graph(grid_search)
+    upload_score_config(grid_search)
+    upload_best_decision_tree_graph(grid_search)
 
 
 logger('======== model engine : supervised ========')

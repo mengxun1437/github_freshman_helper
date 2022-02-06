@@ -1,11 +1,8 @@
 import { BranchesOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import {
-  Table,
   Typography,
   Button,
   Tag,
-  Form,
-  Select,
   Image,
   Modal,
   message,

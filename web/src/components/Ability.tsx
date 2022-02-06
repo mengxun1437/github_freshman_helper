@@ -5,12 +5,13 @@ import {
   Row,
   Space,
   Typography,
-  notification,
   message,
+  Form,
+  Input,
 } from "antd";
 import { CSSProperties, useState } from "react";
 import { Link } from "react-router-dom";
-import { START_RUN_A_MODEL } from "../api/api";
+import { START_RUN_A_MODEL, START_PREDICT, COLLECT_FIRST_ISSUES, GET_A_UNLABEL_ISSUE_ID } from '../api/api';
 const { Text } = Typography;
 
 const gridStyle: CSSProperties = {
@@ -25,11 +26,25 @@ enum START_NEW_MODEL_STATUS_CODE {
 }
 
 enum ABILITY {
+  COLLECT = 'COLLECT',
+  LABEL = 'LABEL',
   TRAIN = "TRAIN",
   PREDICT = "PREDICT",
 }
 
 const cardList = [
+  {
+    key: ABILITY.COLLECT,
+    title: "收集Issues",
+    desc: "拉取github最新的issues",
+    btn: "开始收集",
+  },
+  {
+    key: ABILITY.LABEL,
+    title: "打标签",
+    desc: "判断是否适合新手，并收集到训练集中",
+    btn: "去打标签",
+  },
   {
     key: ABILITY.TRAIN,
     title: "训练模型",
@@ -47,9 +62,10 @@ const cardList = [
 export const Ability = () => {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [curKey, setCurKey] = useState(ABILITY.TRAIN);
+  const [predictForm] = Form.useForm();
+  const [predictLoding, setPredictLoading] = useState(false);
 
   const handleCardClick = (key: any) => {
-    console.log(key);
     setCurKey(key);
     // 需要弹窗
     if ([ABILITY.PREDICT].includes(key)) {
@@ -57,30 +73,58 @@ export const Ability = () => {
       return;
     }
     // TODO: 模型的选择需要拓展，目前展示不拓展
-    if (key === ABILITY.TRAIN) {
+    if(key === ABILITY.COLLECT){
+      // COLLECT_FIRST_ISSUES()
+      message.info("此功能暂不开放")
+    }else if(key === ABILITY.LABEL){
+      GET_A_UNLABEL_ISSUE_ID().then((data:any)=>{
+        window.open(`${window.location.origin}/label/${data}`,'_blank')
+      }).catch(()=>{
+        message.error('获取issueId失败')
+      })
+    }else if (key === ABILITY.TRAIN) {
       START_RUN_A_MODEL()
         .then((data: any) => {
           if (data?.code === START_NEW_MODEL_STATUS_CODE.SUCCESS) {
-            notification.success({
-              message: (
-                <div>
-                  <Row>{data?.message}</Row>
-                  <Link to={`/log/${data?.data?.modelId}`}></Link>
-                </div>
-              ),
-            });
+            message.success(`success,model id is ${data?.data?.modelId}`);
           } else if (data?.code === START_NEW_MODEL_STATUS_CODE.FAIL) {
-            notification.error({
-              message: data?.message,
-            });
+            message.error(data?.message || "服务端错误");
           }
         })
         .catch((e) => {
-          notification.error({
-            message: `some error happend: ${e.message}`,
-          });
+          message.error(e?.message || "服务端错误");
         });
     }
+  };
+
+  const handlePredictClick = () => {
+    setPredictLoading(true);
+    const predictFormValue = { ...predictForm.getFieldsValue() };
+    // TODO: 选择预测模型，暂时手填，后续优化
+    const issueId = predictFormValue?.issueId;
+    const modelId = predictFormValue?.modelId;
+    if (!issueId || !modelId) {
+      message.warning("参数未完整");
+      setPredictLoading(false);
+      return;
+    }
+    START_PREDICT({ issueId, modelId })
+      .then((data: any) => {
+        if (data?.bid) {
+          message.success(
+            `预测成功：${data?.isGoodForFreshman ? "" : "不"}适合新手`
+          );
+          return;
+        } else {
+          message.error("预测失败");
+        }
+      })
+      .catch((e) => {
+        message.error(`预测失败: ${e.message}`);
+      })
+      .finally(() => {
+        setPredictLoading(false);
+      });
   };
 
   return (
@@ -122,18 +166,31 @@ export const Ability = () => {
         size="large"
         onClose={() => setDrawerVisible(false)}
         visible={drawerVisible}
-        extra={
-          <Space>
-            <Button onClick={() => {}}>Cancel</Button>
-            <Button type="primary" onClick={() => {}}>
-              OK
-            </Button>
-          </Space>
-        }
+        closeIcon={null}
       >
-        <p>Some contents...</p>
-        <p>Some contents...</p>
-        <p>Some contents...</p>
+        {curKey === ABILITY.PREDICT ? (
+          <>
+            <h4>预测时间可能有点久，大约10秒，请耐心等待</h4>
+            <Form
+              form={predictForm}
+              layout="horizontal"
+              name="form_in_modal"
+              initialValues={{}}
+            >
+              <Form.Item name="issueId" label="issueId">
+                <Input />
+              </Form.Item>
+              <Form.Item name="modelId" label="modelId">
+                <Input />
+              </Form.Item>
+              <Button loading={predictLoding} onClick={handlePredictClick}>
+                {predictLoding ? "预测中" : "立即预测"}
+              </Button>
+            </Form>
+          </>
+        ) : (
+          <></>
+        )}
       </Drawer>
     </>
   );

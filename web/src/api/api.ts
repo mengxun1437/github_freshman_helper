@@ -1,6 +1,6 @@
 import axios from "axios";
 import { notification } from "antd";
-import { BASE_SERVER_URL } from "../common/index";
+import { BASE_QINIU_URL, BASE_SERVER_URL } from "../common/index";
 
 axios.interceptors.response.use((res) => {
   try {
@@ -63,6 +63,10 @@ export const GET_A_UNLABEL_ISSUE_ID = async () => {
   return await _get("/issue/getAUnlabelIssueId");
 };
 
+export const COLLECT_FIRST_ISSUES = async () => {
+  return await _get('/issue/collectFirstIssues')
+}
+
 // issueModel
 export const UPDATE_ISSUE_MODEL = async (issueModel: any) => {
   return await _put(`/issueModel/`, issueModel);
@@ -93,6 +97,10 @@ export const START_RUN_A_MODEL = async () => {
   return await _post("/model/startRunAModel");
 };
 
+export const START_PREDICT = async (body:any) => {
+  return await _post('/model/startPredict',body)
+}
+
 // other
 export const GET_SOURCE_FROM_QINIU = async (type: string, sourceId: string) => {
   let suffix = "log";
@@ -102,7 +110,7 @@ export const GET_SOURCE_FROM_QINIU = async (type: string, sourceId: string) => {
     contentType = 'application/json'
   }
   return await axios({
-    url: `http://qiniu-gfh.mengxun.online/${type}/${sourceId}.${suffix}?timestamp=${new Date().getTime()}`,
+    url: `${BASE_QINIU_URL}/${type}/${sourceId}.${suffix}?timestamp=${new Date().getTime()}`,
     timeout: 0,
     headers: {
       "Content-Type": contentType,

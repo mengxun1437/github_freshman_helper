@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { Model } from './model.entity';
 import { QINIU_BUCKET_URL } from '../../common/constants';
 import { ModelPredict } from './model-predict.entity';
+import { Issue } from '../issue/issue.entity';
 import {
   IPaginationOptions,
   Pagination,
@@ -30,6 +31,8 @@ export enum START_NEW_MODEL_STATUS_CODE {
 @Injectable()
 export class ModelService implements OnModuleDestroy {
   constructor(
+    @InjectRepository(Issue)
+    private readonly issueRepository: Repository<Issue>,
     @InjectRepository(Model)
     private readonly modelRepository: Repository<Model>,
     @InjectRepository(ModelPredict)
@@ -212,6 +215,13 @@ export class ModelService implements OnModuleDestroy {
           }
         }, 3000);
       });
+
+      if(predict){
+        await this.issueRepository.save({
+          issueId,
+          isGoodTag:predict?.isGoodForFreshman
+        })
+      }
 
       return predict || {};
     } catch (e) {

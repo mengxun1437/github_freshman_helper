@@ -1,6 +1,4 @@
 # -*- coding: UTF-8 -*-
-import time
-
 from common.common import qiniu_bucket_url, issue_model_column_list, gfh_prod_server_url, gfh_local_server_url
 from common.utils import logger
 from getopt import getopt

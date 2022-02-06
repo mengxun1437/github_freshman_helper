@@ -1,11 +1,11 @@
-from qiniu import put_file, put_data, put_stream
-from config.config import qiniu_ak, qiniu_sk
+from qiniu import put_file, put_data
+from config.config import qiniu_ak, qiniu_sk, qiniu_bucket
 import qiniu
 
 q = qiniu.Auth(qiniu_ak, qiniu_sk)
 
 bucket = qiniu.BucketManager(q)
-bucket_name = 'gfh-qiniu'
+bucket_name = qiniu_bucket
 
 
 def get_upload_token(key):
