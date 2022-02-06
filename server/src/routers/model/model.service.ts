@@ -155,6 +155,10 @@ export class ModelService implements OnModuleDestroy {
           await this.modelRepository.delete({
             modelId,
           });
+          return {
+            code:START_NEW_MODEL_STATUS_CODE.FAIL,
+            message:"python program exit,please check"
+          }
         }
       });
       await this.modelRepository.save({
