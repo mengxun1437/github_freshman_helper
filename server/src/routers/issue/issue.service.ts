@@ -33,11 +33,11 @@ export class IssueService {
   private lockSourceNum: number = 0;
 
   // 获取一个没有打标签的issue
-  async getAUnlabelIssueId(){
+  async getAUnlabelIssueId() {
     const issue = await this.issueRepository.findOne({
-      isGoodTag:null
-    })
-    return issue?.issueId
+      isGoodTag: null,
+    });
+    return issue?.issueId;
   }
 
   // 通过issueId获取具体内容
@@ -87,7 +87,8 @@ export class IssueService {
     where = {},
   ): Promise<Pagination<Issue>> {
     let queryBuilder = this.issueRepository
-      .createQueryBuilder('issue').where(where)
+      .createQueryBuilder('issue')
+      .where(where);
     queryBuilder.orderBy('issue.issueCreated', 'DESC');
     return paginate<Issue>(queryBuilder, options);
   }
@@ -240,14 +241,14 @@ export class IssueService {
   }
 
   // 获取issues
-  async collectFirstIssues(): Promise<any> {
+  async collectFirstIssues({ start, end }): Promise<any> {
     let curDate = dayjs(dayjs().format('YYYY-MM-DD'));
     const lastCollectedTime =
       (
         await this.issueRepository.query(
           'select max(createdDate) from issue_collect',
         )
-      )?.[0]?.['max(createdDate)'] || curDate;
+      )?.[0]?.['max(createdDate)'] || start;
     let lastDate = dayjs(dayjs(lastCollectedTime).format('YYYY-MM-DD'));
     new Array(30).fill(0).forEach(() => {
       if (lastDate.isBefore(curDate)) {

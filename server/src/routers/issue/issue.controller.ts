@@ -2,32 +2,36 @@ import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { IssueService } from './issue.service';
 import { Pagination } from 'nestjs-typeorm-paginate';
 import { Issue } from './issue.entity';
+import * as dayjs from 'dayjs';
 
 @Controller('issue')
 export class IssueController {
   constructor(private readonly issueService: IssueService) {}
 
   @Get('/getAUnlabelIssueId')
-  async getAUnlabelIssueId(){
-    return this.issueService.getAUnlabelIssueId()
+  async getAUnlabelIssueId() {
+    return this.issueService.getAUnlabelIssueId();
   }
 
   @Get('/issueInfo/:issueId')
-  async getIssueInfoByIssueId(@Param('issueId') issueId:number){
-    return await this.issueService.getIssueInfoByIssueId(issueId)
+  async getIssueInfoByIssueId(@Param('issueId') issueId: number) {
+    return await this.issueService.getIssueInfoByIssueId(issueId);
   }
 
   @Get('/getIssuesPaginate')
   async getIssuesPaginate(
     @Query('page') page: number = 1,
     @Query('pageNum') limit: number = 20,
-    @Query('where') where:any = "{}"
+    @Query('where') where: any = '{}',
   ): Promise<Pagination<Issue>> {
     limit = limit > 100 ? 100 : limit;
-    return await this.issueService.getIssuesPaginate({
-      page,
-      limit
-    },JSON.parse(where));
+    return await this.issueService.getIssuesPaginate(
+      {
+        page,
+        limit,
+      },
+      JSON.parse(where),
+    );
   }
 
   // 获取issues的基本信息
@@ -37,8 +41,11 @@ export class IssueController {
   }
 
   @Get('/collectFirstIssues')
-  async getGoodFirstIssues(): Promise<any> {
-    await this.issueService.collectFirstIssues();
+  async getGoodFirstIssues(
+    @Query('start') start: string = '2000-01-01',
+    @Query('end') end: string = dayjs().format('YYYY-MM-DD'),
+  ): Promise<any> {
+    await this.issueService.collectFirstIssues({ start, end });
     return 'success';
   }
 
@@ -69,5 +76,4 @@ export class IssueController {
       await this.issueService.fixIssueAddRepo();
     }
   }
-
 }

@@ -11,7 +11,7 @@
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "cross-env NODE_ENV=production nest start",
     "dev": "cross-env NODE_ENV=development nest start",
-    "start:webpack": "node dist/server",
+    "start:webpack": "cross-env NODE_ENV=development node dist/server",
     "webpack": "webpack --config webpack.config.js",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",

@@ -68,5 +68,10 @@ export class IssueModelController {
       }
     }
   }
+
+  @Post('/tagIssues')
+  async tagIssues(){
+    return await this.issueModelService.tagIssues()
+  }
   
 }

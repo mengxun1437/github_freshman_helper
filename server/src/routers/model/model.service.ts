@@ -144,6 +144,7 @@ export class ModelService implements OnModuleDestroy {
       const exec_command = `python ../model/${modelType}.py -m ${modelId} -f ${modelFramework} -p ${modelProgram} ${
         PROD_ENV ? '' : '-l'
       }`;
+      console.log(exec_command)
       const child = exec(exec_command, async (err: any, stdout: any) => {
         if (err) {
           const tmpModel = await this.modelRepository.findOne({
