@@ -18,6 +18,43 @@ export const randomRequest = async (api: any) => {
   }
 };
 
+export class OctokitRequest {
+  constructor({ sleep = 1000 }) {
+    this.authIndex = 0;
+    this.sleep = sleep;
+  }
+
+  authIndex: number = 0;
+  sleep: number = 1000;
+
+  _getAuthIndex() {
+    if (this.authIndex < octokits.length) {
+      this.authIndex++;
+      console.log(`use authIndex ${this.authIndex - 1}`);
+      return this.authIndex - 1;
+    } else {
+      this.authIndex = 1;
+      console.log(`use authIndex 0`);
+      return 0;
+    }
+  }
+
+  async get(api: any) {
+    if (!api) return null;
+    try {
+      const octokit = octokits[this._getAuthIndex()];
+      const resp = await octokit.request(`GET ${api}`);
+      await sleep(this.sleep);
+      if (resp?.status === 200) {
+        return resp?.data || null;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+}
+
 export const sleep = async (timer: number) => {
   await new Promise((res) => {
     setTimeout(() => {
@@ -40,14 +77,14 @@ export class Logger {
 
     if (this.useFile) {
       this.intervalId = setInterval(() => {
-        this.tmpIndex = this.logList.length
+        this.tmpIndex = this.logList.length;
         fs.appendFileSync(
           this.file,
           this.logList.join('\n'),
-          writeFileOption || {}
+          writeFileOption || {},
         );
-        this.logList.splice(0,this.tmpIndex)
-        this.tmpIndex = 0
+        this.logList.splice(0, this.tmpIndex);
+        this.tmpIndex = 0;
       }, this.interval);
     }
   }

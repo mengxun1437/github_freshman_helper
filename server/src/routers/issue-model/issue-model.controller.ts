@@ -17,7 +17,7 @@ export class IssueModelController {
   // 通过issueId获取某个issue的model信息
   @Get('/modelInfo/:issueId')
   async getIssueModelConfig(@Param('issueId') issueId: number) {
-    return await this.issueModelService.getModelNeedDataByIssueId(issueId);
+    return await this.issueModelService.getModelNeedDataByIssueId({ issueId });
   }
 
   @Put('/')
@@ -57,7 +57,7 @@ export class IssueModelController {
         const isGoodForFreshman = i <= goodNum;
         const issueId = await this.issueService.getAUnlabelIssueId();
         const issueModel =
-          await this.issueModelService.getModelNeedDataByIssueId(issueId);
+          await this.issueModelService.getModelNeedDataByIssueId({ issueId });
         await this.issueModelService.updateModel({
           ...issueModel,
           issueId,
@@ -70,8 +70,12 @@ export class IssueModelController {
   }
 
   @Post('/tagIssues')
-  async tagIssues(){
-    return await this.issueModelService.tagIssues()
+  async tagIssues() {
+    return await this.issueModelService.tagIssues();
   }
-  
+
+  @Post('/batchTags')
+  async batchTags() {
+    return await this.issueModelService.batchTags();
+  }
 }

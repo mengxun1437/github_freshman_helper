@@ -8,6 +8,7 @@ import {
   randomRequest,
   sleep,
   Logger,
+  OctokitRequest,
 } from '../../common/index';
 import {
   IPaginationOptions,
@@ -40,34 +41,42 @@ export class IssueModelService {
   }
 
   // 通过issueId获取模型需要数据
-  async getModelNeedDataByIssueId(issueId: number) {
-    const issue = await this.issueRepository.findOne({
-      issueId,
-    });
+  async getModelNeedDataByIssueId({
+    issueId,
+    _issue = undefined,
+    _octokitRequest = undefined,
+  }) {
+    const octokitRequest = _octokitRequest || new OctokitRequest({});
+    const issue =
+      _issue ||
+      (await this.issueRepository.findOne({
+        issueId,
+      }));
     if (!issue) return {};
     const issueModel: any = {};
     issueModel.issueId = issueId;
     const issueApiUrl = formatGithubApi(issue.issueApiUrl);
-    const issueInfo = (await randomRequest(issueApiUrl)) || {};
+    const issueInfo = (await octokitRequest.get(issueApiUrl)) || {};
     issueModel.titleLength = issueInfo?.title?.length || 0;
     issueModel.bodyLength = issueInfo?.body?.length || 0;
     issueModel.commentsNum = issueInfo?.comments || 0;
     issueModel.assigneesNum = issueInfo?.assignees?.length || 0;
     issueModel.isLinkedPr = issueInfo?.pull_request !== undefined;
 
-    const commentsInfo = (await randomRequest(issueInfo?.comments_url)) || [];
+    const commentsInfo =
+      (await octokitRequest.get(issueInfo?.comments_url)) || [];
     issueModel.commentsTotalLength = commentsInfo?.reduce(
       (pre, cur) => pre + (cur?.body?.length || 0),
       0,
     );
 
-    const creatorInfo = (await randomRequest(issueInfo?.user?.url)) || {};
+    const creatorInfo = (await octokitRequest.get(issueInfo?.user?.url)) || {};
     issueModel.creatorCreated = new Date(
       creatorInfo?.created_at || new Date(),
     ).getTime();
     issueModel.creatorFollowers = creatorInfo?.followers || 0;
 
-    const eventsInfo = (await randomRequest(issueInfo?.events_url)) || [];
+    const eventsInfo = (await octokitRequest.get(issueInfo?.events_url)) || [];
     const participantsSet = new Set();
     eventsInfo.forEach((event) => {
       if (event?.actor?.id) {
@@ -76,7 +85,8 @@ export class IssueModelService {
     });
     issueModel.participantsNum = participantsSet.size;
 
-    const repoInfo = (await randomRequest(issueInfo?.repository_url)) || {};
+    const repoInfo =
+      (await octokitRequest.get(issueInfo?.repository_url)) || {};
     issueModel.starNum = repoInfo?.stargazers_count || 0;
     issueModel.openIssuesNum = repoInfo?.open_issues_count || 0;
     issueModel.hasOrganization = repoInfo?.organization?.id !== undefined;
@@ -214,6 +224,52 @@ export class IssueModelService {
           }
         }, i * 2000);
       }
-    } catch {}
+    } catch {
+    } finally {
+      logger.clearInterval();
+    }
+  }
+
+  // 批量生成标签
+  async batchTags() {
+    const logger = new Logger({
+      file: 'D:\\Project\\github_freshman_helper\\server\\src\\routers\\issue-model\\batch-tags.log',
+      interval: 10000,
+      useFile: true,
+    });
+    try {
+      const octokitRequest = new OctokitRequest({ sleep: 500 });
+      const issues = await this.issueRepository.query(
+        `select * from issue where (issue.isGoodTag = 1 or issue.isGoodTag = 0) and issue.issueId not in (select issueId from issue_model)`,
+      );
+      logger.log(`find ${issues.length} unlabel records`);
+      for (let i = 0; i < issues.length; i++) {
+        try {
+          const issue = issues[i];
+          const issueModel = await this.getModelNeedDataByIssueId({
+            issueId: issue?.issueId,
+            _issue: issue,
+            _octokitRequest: octokitRequest,
+          });
+          await this.issueModelRepository.save({
+            ...issueModel,
+            issueId: issue?.issueId,
+            isGoodForFreshman: Boolean(issue?.isGoodTag),
+            updateAt: new Date().getTime(),
+          });
+          logger.log(
+            `end success: index:${i} issueId:${
+              issue.issueId
+            }, isGoodForFreshman: ${issue?.isGoodTag ? 'true' : 'false'}`,
+          );
+        } catch (e) {
+          logger.log(`end error:${e.messge}`);
+        }
+      }
+    } catch (e) {
+      console.log(e.message);
+    } finally {
+      logger.clearInterval();
+    }
   }
 }
