@@ -10,28 +10,28 @@ export class ModelController {
     private readonly issueModelService: IssueModelService,
   ) {}
 
-   // 获取分页数据
-   @Get('/getModelsPaginate')
-   async getModelsPaginate(
-     @Query('page') page: number = 1,
-     @Query('pageNum') limit: number = 20,
-     @Query('where') where: any = '{}',
-   ): Promise<Pagination<Model>> {
-     limit = limit > 100 ? 100 : limit;
-     return await this.modelService.getModelsPaginate(
-       {
-         page,
-         limit,
-       },
-       JSON.parse(where),
-     );
-   }
- 
-   // 获取issues的基本信息
-   @Get('/getModelsBasicInfo')
-   async getModelsBasicInfo() {
-     return await this.modelService.getModelsBasicInfo();
-   }
+  // 获取分页数据
+  @Get('/getModelsPaginate')
+  async getModelsPaginate(
+    @Query('page') page: number = 1,
+    @Query('pageNum') limit: number = 20,
+    @Query('where') where: any = '{}',
+  ): Promise<Pagination<Model>> {
+    limit = limit > 100 ? 100 : limit;
+    return await this.modelService.getModelsPaginate(
+      {
+        page,
+        limit,
+      },
+      JSON.parse(where),
+    );
+  }
+
+  // 获取issues的基本信息
+  @Get('/getModelsBasicInfo')
+  async getModelsBasicInfo() {
+    return await this.modelService.getModelsBasicInfo();
+  }
 
   @Post('/startRunAModel')
   async startRunAModel(@Body() body: any) {
@@ -68,7 +68,7 @@ export class ModelController {
     const { issueId } = body;
     try {
       const issueModelInfo =
-        await this.issueModelService.getModelNeedDataByIssueId(issueId);
+        await this.issueModelService.getModelNeedDataByIssueId({ issueId });
       return await this.modelService.startPredict({ ...body, issueModelInfo });
     } catch (e) {
       console.log(e);

@@ -42,7 +42,7 @@ export const IssueLabel = () => {
     const { issue } = issueInfo;
     if (!issue?.issueHtmlUrl) return <></>;
     const iframeUrl = `${BASE_PROXY_URL}/githubIssue/${issue?.issueHtmlUrl?.slice(
-      18
+      19
     )}`;
     return (
       <div>

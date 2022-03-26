@@ -144,7 +144,7 @@ export class ModelService implements OnModuleDestroy {
       const exec_command = `python ../model/${modelType}.py -m ${modelId} -f ${modelFramework} -p ${modelProgram} ${
         PROD_ENV ? '' : '-l'
       }`;
-      console.log(exec_command)
+      console.log(exec_command);
       const child = exec(exec_command, async (err: any, stdout: any) => {
         if (err) {
           const tmpModel = await this.modelRepository.findOne({
@@ -217,11 +217,11 @@ export class ModelService implements OnModuleDestroy {
         }, 3000);
       });
 
-      if(predict){
+      if (predict) {
         await this.issueRepository.save({
           issueId,
-          isGoodTag:predict?.isGoodForFreshman
-        })
+          isGoodTag: predict?.isGoodForFreshman,
+        });
       }
 
       return predict || {};
