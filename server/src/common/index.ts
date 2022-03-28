@@ -103,6 +103,7 @@ export class Logger {
 
   clearInterval() {
     if (this.useFile && this.intervalId) {
+      console.log(`clear interval ${this.intervalId}`)
       clearInterval(this.intervalId);
     }
   }

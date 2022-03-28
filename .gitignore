@@ -2,6 +2,7 @@
 **/dist
 **/build
 .idea
+config.yaml
 
 # Logs
 **/logs
