@@ -194,10 +194,11 @@ export class ModelService implements OnModuleDestroy {
   async startPredict({ issueId, modelId, issueModelInfo }: any) {
     const bid = randomUUID();
     try {
-      const execCommand = `python ../model/predict.py -i '${JSON.stringify({
+      const execCommand = `python ../model/predict.py -i '${new Buffer(JSON.stringify({
         ...issueModelInfo,
         issueId,
-      })}' -m ${modelId} -b ${bid} ${PROD_ENV ? '' : '-l'}`;
+      })).toString('base64')}' -m ${modelId} -b ${bid} ${PROD_ENV ? '' : '-l'}`;
+      console.log(execCommand)
       exec(execCommand);
       // 每隔3秒轮询一次，如果轮询总时长超过30秒，则认为预测失败
       const startTime = new Date().getTime();

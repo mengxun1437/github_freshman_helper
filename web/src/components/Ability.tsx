@@ -3,15 +3,13 @@ import {
   Card,
   Drawer,
   Row,
-  Space,
   Typography,
   message,
   Form,
   Input,
 } from "antd";
 import { CSSProperties, useState } from "react";
-import { Link } from "react-router-dom";
-import { START_RUN_A_MODEL, START_PREDICT, COLLECT_FIRST_ISSUES, GET_A_UNLABEL_ISSUE_ID } from '../api/api';
+import { START_RUN_A_MODEL, START_PREDICT, GET_A_UNLABEL_ISSUE_ID } from '../api/api';
 const { Text } = Typography;
 
 const gridStyle: CSSProperties = {

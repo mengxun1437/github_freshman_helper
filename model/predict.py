@@ -2,10 +2,10 @@
 from common.common import qiniu_bucket_url, issue_model_column_list, gfh_prod_server_url, gfh_local_server_url
 from common.utils import logger
 from getopt import getopt
-import pickle, requests, sys, json
+import pickle, requests, sys, json, base64
 
 '''
- i -> issue 模型需要预测的数据
+ i -> issue 模型需要预测的数据 // windows会对json作转义，所以采用base64进行传递
  m -> mid 用来获取模型
  b -> business 业务相关操作
  l -> 模型预测的环境是否为本地
@@ -18,7 +18,8 @@ try:
     is_prod_env = True
     for opt_name, opt_value in opts:
         if opt_name == '-i':
-            issue = json.loads(opt_value)
+            json_data = base64.b64decode(opt_value)
+            issue = json.loads(json_data)
         if opt_name == '-m':
             model_id = opt_value
         if opt_name == '-b':

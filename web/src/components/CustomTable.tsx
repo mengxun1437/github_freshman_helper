@@ -1,4 +1,4 @@
-import { Table, Tag, Form, Select, Typography, Button, Image } from "antd";
+import { Table, Tag, Form, Select } from "antd";
 import { useState, useEffect } from "react";
 
 export const CustomTable = (props: any) => {
