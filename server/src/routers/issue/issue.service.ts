@@ -388,4 +388,21 @@ export class IssueService {
       }, i * 5000);
     }
   }
+
+  // 获取每一天的issue数目，没有的话就返回0条
+  async getEveryDateIssueNum(): Promise<any> {
+    console.log('getEveryDateIssueNum');
+    const data = await this.issueRepository.query(`
+        SELECT substr( issueCreated, 1, 7 ) AS date,
+          count(*) as count,
+          count(IF(issueState = 'open',true,null)) as open,
+          count(IF(issueState = 'closed',true,null)) as closed
+        FROM
+          issue 
+        GROUP BY
+          substr( issueCreated, 1, 7 ) 
+        ORDER BY
+          substr(issueCreated,1,7)`);
+    return data;
+  }
 }

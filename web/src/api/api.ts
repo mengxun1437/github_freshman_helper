@@ -67,6 +67,10 @@ export const COLLECT_FIRST_ISSUES = async () => {
   return await _get('/issue/collectFirstIssues')
 }
 
+export const GET_EVERY_DATE_ISSUE_NUM = async () => {
+  return await _get('/issue/getEveryDateIssueNum')
+}
+
 // issueModel
 export const UPDATE_ISSUE_MODEL = async (issueModel: any) => {
   return await _put(`/issueModel/`, issueModel);

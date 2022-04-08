@@ -40,7 +40,7 @@ export class IssueController {
     return await this.issueService.getIssuesBasicInfo();
   }
 
-  @Get('/collectFirstIssues')
+  @Post('/collectFirstIssues')
   async getGoodFirstIssues(
     @Query('start') start: string = '2000-01-01',
     @Query('end') end: string = dayjs().format('YYYY-MM-DD'),
@@ -74,6 +74,15 @@ export class IssueController {
     }
     if (type === 'fixIssueAddRepo') {
       await this.issueService.fixIssueAddRepo();
+    }
+  }
+
+  @Get('/getEveryDateIssueNum')
+  async getEveryDateIssueNum() {
+    try {
+      return this.issueService.getEveryDateIssueNum();
+    } catch {
+      return [];
     }
   }
 }
