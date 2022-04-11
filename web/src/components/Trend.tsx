@@ -2,28 +2,31 @@ import ReactECharts, { EChartsOption } from "echarts-for-react";
 import { useState, useEffect } from "react";
 import { GET_EVERY_DATE_ISSUE_NUM } from "../api/api";
 
-export const Dashboard = (props: any) => {
+export const Trend = (props: any) => {
   const [everyDateOption, setEveryDateOption] = useState<EChartsOption>({});
   useEffect(() => {
     GET_EVERY_DATE_ISSUE_NUM().then((data: any) => {
       const everyDateList = ["count", "open", "closed"];
       setEveryDateOption({
         title: {
-          text: "GFI ISSUE 趋势图",
+          text: "GFI ISSUE TREND",
           textAlign: "center",
-          left:"50%"
+          left: "50%",
         },
         animationDuration: 2500,
         grid: {},
         yAxis: {
-          name: "GFI 创建数目",
+          name: "GFI Created Num",
           type: "value",
-        },
+          splitLine: {
+            show: false,
+          },
+        },  
         xAxis: {
-          name: "日期 / 月",
+          name: "Date(every month)",
           type: "category",
           nameLocation: "end",
-          data: data.map((item: any) => item?.date),
+          data: data.map((item: any) => item?.date)
         },
 
         tooltip: {
@@ -43,7 +46,7 @@ export const Dashboard = (props: any) => {
   return (
     <div>
       <ReactECharts
-        style={{ height: 600, padding: 5 }}
+        style={{ height: 500, padding: 5,...props?.style }}
         option={everyDateOption}
       />
     </div>

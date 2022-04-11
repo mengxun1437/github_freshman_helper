@@ -1,7 +1,15 @@
-import { Dashboard } from "../components/Dashboard"
+import { IndexTabs } from "../components/IndexTabs";
+import { Panel } from "../components/Panel";
 
 export const Index = () => {
-    return <div>
-        <Dashboard />
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+      }}
+    >
+      <Panel style={{ marginTop: 20 }} />
+      <IndexTabs />
     </div>
-}
+  );
+};
