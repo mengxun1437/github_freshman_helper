@@ -1,6 +1,6 @@
 issue_model_column_list = ['titleLength', 'bodyLength', 'commentsNum',
                            'commentsTotalLength',
-                           'participantsNum', 'assigneesNum', 'isLinkedPr', 'creatorCreated', 'creatorFollowers',
+                           'participantsNum', 'assigneesNum', 'creatorCreated', 'creatorFollowers',
                            'starNum',
                            'openIssuesNum', 'hasOrganization', 'isGoodForFreshman']
 gfh_prod_server_url = 'http://api.mengxun.online/gfh'

@@ -46,6 +46,47 @@ export const _post = async (url: string, body: any = {}) => {
   });
 };
 
+//user
+export const ADD_NEW_USER = async (data: any) => {
+  return await _post("/user/", data);
+};
+
+export const USER_LOGIN = async (data: any) => {
+  return await _post("/user/login", data);
+};
+
+export const GET_USER_INFO = async (params: any = {}) => {
+  const userid = window.localStorage.getItem("userId") || "";
+  const token = window.localStorage.getItem("token") || "";
+  return await axios({
+    baseURL,
+    timeout: 0,
+    headers: {
+      userid,
+      token,
+    },
+    method: "GET",
+    url: "/user/",
+    params,
+  });
+};
+
+export const UPDATE_USER_FAVOR = async (data: any) => {
+  const userid = window.localStorage.getItem("userId") || "";
+  const token = window.localStorage.getItem("token") || "";
+  return await axios({
+    baseURL,
+    timeout: 0,
+    headers: {
+      userid,
+      token,
+    },
+    method: "POST",
+    url: "/user/favor",
+    data,
+  });
+};
+
 // issue
 export const GET_ISSUES_PAGINATE = async (params: any) => {
   return await _get(`/issue/getIssuesPaginate`, params);
@@ -64,12 +105,12 @@ export const GET_A_UNLABEL_ISSUE_ID = async () => {
 };
 
 export const COLLECT_FIRST_ISSUES = async () => {
-  return await _get('/issue/collectFirstIssues')
-}
+  return await _get("/issue/collectFirstIssues");
+};
 
 export const GET_EVERY_DATE_ISSUE_NUM = async () => {
-  return await _get('/issue/getEveryDateIssueNum')
-}
+  return await _get("/issue/getEveryDateIssueNum");
+};
 
 // issueModel
 export const UPDATE_ISSUE_MODEL = async (issueModel: any) => {
@@ -101,17 +142,17 @@ export const START_RUN_A_MODEL = async () => {
   return await _post("/model/startRunAModel");
 };
 
-export const START_PREDICT = async (body:any) => {
-  return await _post('/model/startPredict',body)
-}
+export const START_PREDICT = async (body: any) => {
+  return await _post("/model/startPredict", body);
+};
 
 // other
 export const GET_SOURCE_FROM_QINIU = async (type: string, sourceId: string) => {
   let suffix = "log";
-  let contentType = 'text/plain'
+  let contentType = "text/plain";
   if (type === "score") {
     suffix = "config";
-    contentType = 'application/json'
+    contentType = "application/json";
   }
   return await axios({
     url: `${BASE_QINIU_URL}/${type}/${sourceId}.${suffix}?timestamp=${new Date().getTime()}`,

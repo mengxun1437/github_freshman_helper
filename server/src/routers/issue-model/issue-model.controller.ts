@@ -49,25 +49,25 @@ export class IssueModelController {
   }
 
   // 随机生成标签
-  @Post('/randomLabel')
-  async randomLabel(@Body() body: any) {
-    const { randomNum, goodNum } = body;
-    for (let i = 0; i < randomNum; i++) {
-      try {
-        const isGoodForFreshman = i <= goodNum;
-        const issueId = await this.issueService.getAUnlabelIssueId();
-        const issueModel =
-          await this.issueModelService.getModelNeedDataByIssueId({ issueId });
-        await this.issueModelService.updateModel({
-          ...issueModel,
-          issueId,
-          isGoodForFreshman,
-        });
-      } catch (e) {
-        console.log(e.messge);
-      }
-    }
-  }
+  // @Post('/randomLabel')
+  // async randomLabel(@Body() body: any) {
+  //   const { randomNum, goodNum } = body;
+  //   for (let i = 0; i < randomNum; i++) {
+  //     try {
+  //       const isGoodForFreshman = i <= goodNum;
+  //       const issueId = await this.issueService.getAUnlabelIssueId();
+  //       const issueModel =
+  //         await this.issueModelService.getModelNeedDataByIssueId({ issueId });
+  //       await this.issueModelService.updateModel({
+  //         ...issueModel,
+  //         issueId,
+  //         isGoodForFreshman,
+  //       });
+  //     } catch (e) {
+  //       console.log(e.messge);
+  //     }
+  //   }
+  // }
 
   @Post('/tagIssues')
   async tagIssues() {
@@ -77,5 +77,17 @@ export class IssueModelController {
   @Post('/batchTags')
   async batchTags() {
     return await this.issueModelService.batchTags();
+  }
+
+  @Post('/storeOpenModelInfo')
+  async storeOpenModelInfo() {
+    await this.issueModelService.storeOpenModelInfo()
+    return 'success';
+  }
+
+  @Post('/startBatchPredict')
+  async startBatchPredict() {
+    await this.issueModelService.startBatchPredict()
+    return 'success';
   }
 }

@@ -12,10 +12,37 @@ import { IssueModelModule } from './routers/issue-model/issue-model.module';
 import { ModelController } from './routers/model/model.controller';
 import { ModelService } from './routers/model/model.service';
 import { ModelModule } from './routers/model/model.module';
+import { UserController } from './routers/user/user.controller';
+import { UserService } from './routers/user/user.service';
+import { UserModule } from './routers/user/user.module';
+import { TokenModule } from './routers/token/token.module';
+import { TokenController } from './routers/token/token.controller';
+import { TokenService } from './routers/token/token.service';
 
 @Module({
-  imports: [TypeOrmModule.forRoot(MYSQL_CONNECT_CONFIG),IssueModule, IssueModelModule, ModelModule],
-  controllers: [AppController,IssueController, IssueModelController, ModelController],
-  providers: [AppService,IssueService, IssueModelService, ModelService],
+  imports: [
+    TypeOrmModule.forRoot(MYSQL_CONNECT_CONFIG),
+    IssueModule,
+    IssueModelModule,
+    ModelModule,
+    UserModule,
+    TokenModule,
+  ],
+  controllers: [
+    AppController,
+    IssueController,
+    IssueModelController,
+    ModelController,
+    UserController,
+    TokenController,
+  ],
+  providers: [
+    AppService,
+    IssueService,
+    IssueModelService,
+    ModelService,
+    UserService,
+    TokenService,
+  ],
 })
 export class AppModule {}

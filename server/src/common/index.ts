@@ -1,6 +1,7 @@
 import { octokits } from './github';
 import process from 'process';
 import * as fs from 'fs';
+import { createHash } from 'crypto';
 
 export const formatGithubApi = (api: any) => api.slice(22);
 
@@ -17,6 +18,24 @@ export const randomRequest = async (api: any) => {
     return null;
   }
 };
+
+export const successBody = (data = {}, message = 'success') => ({
+  code: 0,
+  message,
+  data,
+});
+
+export const errorBody = (message = 'error', data = {}) => ({
+  code: 40000,
+  message,
+  data,
+});
+
+
+export const hashMd5 = (str) => {
+  const md5 = createHash("md5");
+  return md5.update(str).digest("hex")
+}
 
 export class OctokitRequest {
   constructor({ sleep = 1000 }) {

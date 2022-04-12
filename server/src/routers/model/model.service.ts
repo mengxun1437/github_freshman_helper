@@ -3,12 +3,13 @@ import { Body, Injectable, Post, OnModuleDestroy } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { exec, execSync } from 'child_process';
 import { randomUUID } from 'crypto';
-import { PROD_ENV } from '../../common/index';
+import { OctokitRequest, PROD_ENV } from '../../common/index';
 import { Repository } from 'typeorm';
 import { Model } from './model.entity';
 import { QINIU_BUCKET_URL } from '../../common/constants';
 import { ModelPredict } from './model-predict.entity';
 import { Issue } from '../issue/issue.entity';
+import { IssueModelInfo } from '../issue-model/issue-model-info.entity';
 import {
   IPaginationOptions,
   Pagination,
@@ -35,6 +36,8 @@ export class ModelService implements OnModuleDestroy {
     private readonly issueRepository: Repository<Issue>,
     @InjectRepository(Model)
     private readonly modelRepository: Repository<Model>,
+    @InjectRepository(IssueModelInfo)
+    private readonly modelInfoRepository: Repository<IssueModelInfo>,
     @InjectRepository(ModelPredict)
     private readonly modelPredictRepository: Repository<ModelPredict>,
   ) {}
@@ -194,11 +197,13 @@ export class ModelService implements OnModuleDestroy {
   async startPredict({ issueId, modelId, issueModelInfo }: any) {
     const bid = randomUUID();
     try {
-      const execCommand = `python ../model/predict.py -i '${new Buffer(JSON.stringify({
-        ...issueModelInfo,
-        issueId,
-      })).toString('base64')}' -m ${modelId} -b ${bid} ${PROD_ENV ? '' : '-l'}`;
-      console.log(execCommand)
+      const execCommand = `python ../model/predict.py -i '${new Buffer(
+        JSON.stringify({
+          ...issueModelInfo,
+          issueId,
+        }),
+      ).toString('base64')}' -m ${modelId} -b ${bid} ${PROD_ENV ? '' : '-l'}`;
+      console.log(execCommand);
       exec(execCommand);
       // 每隔3秒轮询一次，如果轮询总时长超过30秒，则认为预测失败
       const startTime = new Date().getTime();
@@ -222,6 +227,10 @@ export class ModelService implements OnModuleDestroy {
         await this.issueRepository.save({
           issueId,
           isGoodTag: predict?.isGoodForFreshman,
+        });
+        await this.modelInfoRepository.save({
+          issueId,
+          isGoodForFreshman: predict?.isGoodForFreshman,
         });
       }
 

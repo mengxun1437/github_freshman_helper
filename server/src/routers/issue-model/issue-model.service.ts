@@ -16,6 +16,10 @@ import {
   Pagination,
 } from 'nestjs-typeorm-paginate';
 import { octokits } from '../../common/github';
+import { chunk } from 'lodash';
+import { Logger as WsLogger } from '@mengxun/ws-logger';
+import { IssueModelInfo } from './issue-model-info.entity';
+import { ModelService } from '../model/model.service';
 
 @Injectable()
 export class IssueModelService {
@@ -24,6 +28,9 @@ export class IssueModelService {
     private readonly issueRepository: Repository<Issue>,
     @InjectRepository(IssueModel)
     private readonly issueModelRepository: Repository<IssueModel>,
+    @InjectRepository(IssueModelInfo)
+    private readonly issueModelInfoRepository: Repository<IssueModelInfo>,
+    private readonly modelService: ModelService,
   ) {}
 
   private authIndex: number = 0;
@@ -138,7 +145,7 @@ export class IssueModelService {
   // 获取此次pr中所有提交者，如果存在某一条提交是新手提交，则认为此issue有利于新手解决
   async tagIssues() {
     const logger = new Logger({
-      file: 'D:\\Project\\github_freshman_helper\\server\\src\\routers\\issue-model\\tag-issues.log',
+      file: 'C:\\MyProjects\\github_freshman_helper\\server\\src\\routers\\issue-model\\tag-issues.log',
       interval: 10000,
       useFile: true,
     });
@@ -233,7 +240,7 @@ export class IssueModelService {
   // 批量生成标签
   async batchTags() {
     const logger = new Logger({
-      file: 'D:\\Project\\github_freshman_helper\\server\\src\\routers\\issue-model\\batch-tags.log',
+      file: 'C:\\MyProjects\\github_freshman_helper\\server\\src\\routers\\issue-model\\batch-tags.log',
       interval: 10000,
       useFile: true,
     });
@@ -270,6 +277,75 @@ export class IssueModelService {
       console.log(e.message);
     } finally {
       logger.clearInterval();
+    }
+  }
+
+  // 批量预测
+  async storeOpenModelInfo() {
+    const logger = new WsLogger({
+      interval: 1000,
+      file: {
+        path: 'C:\\MyProjects\\github_freshman_helper\\server\\src\\routers\\issue-model\\open-model-info.log',
+      },
+    });
+    const octokitRequest = new OctokitRequest({ sleep: 50 });
+    logger.log('getting data');
+    const issues = await this.issueRepository.find({
+      where: {
+        isGoodTag: null,
+        issueState: 'open',
+      },
+    });
+    logger.log(`get ${issues.length} data`);
+    // 每10秒otctikts.length组
+    const _chunk = chunk(issues, octokits.length);
+    for (let i = 0; i < _chunk.length; i++) {
+      setTimeout(() => {
+        const _curChunk = _chunk[i];
+        logger.log(`current Size ${_curChunk.length}`);
+        _curChunk.forEach(async (issue, index) => {
+          logger.log(`${i} ${index} ${issue?.issueId}`);
+          const issueModel = await this.getModelNeedDataByIssueId({
+            issueId: issue?.issueId,
+            _issue: issue,
+            _octokitRequest: octokitRequest,
+          });
+          await this.issueModelInfoRepository.save(issueModel);
+        });
+      }, i * 10000);
+    }
+  }
+
+  // 批量预测
+  async startBatchPredict() {
+    const logger = new WsLogger({
+      interval: 1000,
+      file: {
+        path: 'C:\\MyProjects\\github_freshman_helper\\server\\src\\routers\\issue-model\\batch-predict.log',
+      },
+    });
+    logger.log('getting data');
+    const issues = await this.issueModelInfoRepository.find({
+      where: {
+        isGoodForFreshman: null,
+      },
+    });
+    logger.log(`get ${issues.length} data`);
+    // 每10秒otctikts.length组
+    const _chunk = chunk(issues, 10);
+    for (let i = 0; i < _chunk.length; i++) {
+      setTimeout(() => {
+        const _curChunk = _chunk[i];
+        logger.log(`current Size ${_curChunk.length}`);
+        _curChunk.forEach(async (issueModel, index) => {
+          logger.log(`${i} ${index} ${issueModel?.issueId}`);
+          await this.modelService.startPredict({
+            issueId: issueModel.issueId,
+            modelId: '54fd56bf-f435-407f-9f40-31a64aa2dd77',
+            issueModelInfo: issueModel,
+          });
+        });
+      }, i * 20000);
     }
   }
 }
