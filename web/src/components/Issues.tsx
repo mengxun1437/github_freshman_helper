@@ -1,5 +1,5 @@
-import { Button, message, Table } from "antd";
-import { useState, useEffect, useCallback } from "react";
+import { Button, message, Switch, Table } from "antd";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   GET_ISSUES_PAGINATE,
   UPDATE_USER_FAVOR,
@@ -7,6 +7,8 @@ import {
 } from "../api/api";
 import { Typography } from "antd";
 import { useNavigate } from "react-router-dom";
+import STAR_EMPTY from "../statics/images/star-empty.png";
+import STAR_FILLED from "../statics/images/star-filled.png";
 const { Text } = Typography;
 
 export const Issues = (props: any) => {
@@ -15,6 +17,13 @@ export const Issues = (props: any) => {
   const [metaInfo, setMetaInfo] = useState<any>({});
   const [dataLoading, setDataLoading] = useState(true);
   const [userFavors, setUserFavors] = useState<any>([]);
+  const [showMine, setShowMine] = useState(false);
+  const pageDataRef = useRef<any>({
+    hasData: false,
+    data: [],
+    userFavors: [],
+    showMine: false,
+  });
   const navigate = useNavigate();
 
   const tableColumns = [
@@ -78,7 +87,10 @@ export const Issues = (props: any) => {
               changeFavorState(record.issueId, text ? "delete" : "add")
             }
           >
-            {text ? "1" : "0"}
+            <img
+              src={text ? STAR_FILLED : STAR_EMPTY}
+              style={{ width: 24, height: 24 }}
+            />
           </div>
         );
       },
@@ -107,30 +119,26 @@ export const Issues = (props: any) => {
     });
   };
 
-  useEffect(() => {
-    setData(
-      data.map((item: any) => ({
-        ...item,
-        isFavor: userFavors.includes(item?.issueId),
-      }))
-    );
-  }, [userFavors]);
-
-  useEffect(() => {
+  const updateIssueList = (page = 1) => {
+    const where: any = {
+      isGoodTag: true,
+      issueState: "open",
+    };
+    if (pageDataRef.current.showMine) {
+      where.issueIds = pageDataRef.current.userFavors;
+    }
     setDataLoading(true);
     GET_ISSUES_PAGINATE({
       page,
       pageNum: 10,
-      where: {
-        isGoodTag: true,
-        issueState: "open",
-      },
+      where,
     })
       .then((data: any) => {
+        pageDataRef.current.data = data.items;
         setData(
           data.items.map((item: any) => ({
             ...item,
-            isFavor: userFavors.includes(item?.issueId),
+            isFavor: pageDataRef.current.userFavors.includes(item?.issueId),
           }))
         );
         setMetaInfo(data.meta);
@@ -139,12 +147,53 @@ export const Issues = (props: any) => {
         message.warning("Get Issues Failed");
       })
       .finally(() => {
+        pageDataRef.current.hasData = true;
         setDataLoading(false);
       });
+  };
+
+  useEffect(() => {
+    pageDataRef.current.userFavors = userFavors;
+    if (pageDataRef.current.hasData) {
+      setData(
+        pageDataRef.current.data.map((item: any) => ({
+          ...item,
+          isFavor: userFavors.includes(item?.issueId),
+        }))
+      );
+      return;
+    }
+    updateIssueList();
+  }, [userFavors]);
+
+  useEffect(() => {
+    updateIssueList(page);
   }, [page]);
+
+  useEffect(() => {
+    pageDataRef.current.showMine = showMine;
+    setPage(1);
+    updateIssueList();
+  }, [showMine]);
 
   return (
     <div>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          float: "right",
+          marginRight: 20,
+        }}
+      >
+        <span style={{ fontWeight: 500, marginRight: 10 }}>只看我收藏的</span>
+        <Switch
+          defaultChecked={false}
+          onChange={(e) => {
+            setShowMine(e);
+          }}
+        />
+      </div>
       <Table
         style={{
           padding: "0 10px",
@@ -156,6 +205,7 @@ export const Issues = (props: any) => {
         pagination={{
           position: ["bottomRight"],
           defaultCurrent: page,
+          current: page,
           pageSize: 10,
           pageSizeOptions: [10],
           total: metaInfo?.totalItems,

@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Token } from './token.entity';
 import { hashMd5 } from '../../common/index';
+import { UserService } from '../user/user.service';
+import { ADMIN_ACCOUNTS } from '../../common/constants';
 
 interface GetToken {
   exist: boolean;
@@ -35,6 +37,7 @@ export class TokenService {
   constructor(
     @InjectRepository(Token)
     private readonly tokenRepository: Repository<Token>,
+    private readonly userService: UserService,
   ) {}
 
   async getToken(userId): Promise<GetToken> {
@@ -106,5 +109,16 @@ export class TokenService {
       }
     }
     return res;
+  }
+
+  async checkAdminToken(headers: any) {
+    const checkedToken = await this.checkTokenValid(headers);
+    if (!checkedToken?.checked) {
+      return false;
+    }
+    const userId = headers.userid || '';
+    const _user = await this.userService.getUser({ userId });
+    if (!_user.exist) return false;
+    return ADMIN_ACCOUNTS.includes(_user.detail.nickName);
   }
 }

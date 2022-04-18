@@ -5,8 +5,8 @@ import {
   RocketOutlined,
   StarOutlined,
 } from "@ant-design/icons";
-import { Layout, Menu, Spin } from "antd";
-import React, { useEffect, useState } from "react";
+import { Layout, Menu, Spin, notification, Button } from 'antd';
+import React, { useEffect, useLayoutEffect, useState } from "react";
 import {
   GET_ISSUES_BASIC_INFO,
   GET_ISSUE_MODELS_BASIC_INFO,
@@ -15,12 +15,14 @@ import {
 import { DataViewPageHeader } from "../components/DataViewPageHeader";
 import "./Admin.css";
 import { CustomTable } from "../components/CustomTable";
-import { Ability } from '../components/Ability';
+import { Ability } from "../components/Ability";
+import { ADMIN_TOKEN } from "../api/api";
 import {
   issueTableProps,
   issueModelTableProps,
   modelTableProps,
 } from "../common/tables";
+import { useNavigate } from "react-router-dom";
 const { Header, Content, Sider } = Layout;
 
 enum CONTENT_KEY {
@@ -62,6 +64,7 @@ export const Admin = () => {
   const [issueLoading, setIssueLoading] = useState(true);
   const [issueModelLoading, setIssueModelLoading] = useState(true);
   const [modelLoading, setModelLoading] = useState(true);
+  const navigate = useNavigate();
 
   const issueViewHeaderData = [
     {
@@ -138,17 +141,27 @@ export const Admin = () => {
   );
 
   useEffect(() => {
-    GET_ISSUES_BASIC_INFO().then((data) => {
-      setIssuesBasicInfo(data || {});
-      setIssueLoading(false);
-    });
-    GET_ISSUE_MODELS_BASIC_INFO().then((data) => {
-      setIssueModelsBasicInfo(data || {});
-      setIssueModelLoading(false);
-    });
-    GET_MODELS_BASIC_INFO().then((data: any) => {
-      setModelsBasicInfo(data || {});
-      setModelLoading(false);
+    ADMIN_TOKEN().then((_data: any) => {
+      if(!_data?.data){
+        notification.warning({
+          message: "Login In",
+          description: "You should login in with admin account"
+        });
+        navigate("/login")
+        return
+      }
+      GET_ISSUES_BASIC_INFO().then((data) => {
+        setIssuesBasicInfo(data || {});
+        setIssueLoading(false);
+      });
+      GET_ISSUE_MODELS_BASIC_INFO().then((data) => {
+        setIssueModelsBasicInfo(data || {});
+        setIssueModelLoading(false);
+      });
+      GET_MODELS_BASIC_INFO().then((data: any) => {
+        setModelsBasicInfo(data || {});
+        setModelLoading(false);
+      });
     });
   }, []);
 
@@ -231,3 +244,4 @@ export const Admin = () => {
     </Layout>
   );
 };
+

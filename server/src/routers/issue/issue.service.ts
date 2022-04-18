@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { octokits } from '../../common/github';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Issue } from './issue.entity';
 import * as dayjs from 'dayjs';
 import { IssueCollect } from './issue-collect.entity';
@@ -84,8 +84,12 @@ export class IssueService {
   // 获取issues分页
   async getIssuesPaginate(
     options: IPaginationOptions,
-    where = {},
+    where:any = {},
   ): Promise<Pagination<Issue>> {
+    if(where.issueIds){
+      where.issueId = In(where.issueIds)  
+      delete where.issueIds
+    }
     let queryBuilder = this.issueRepository
       .createQueryBuilder('issue')
       .where(where);

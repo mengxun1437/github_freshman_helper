@@ -18,8 +18,13 @@ import { IssueCollect } from '../routers/issue/issue-collect.entity';
 import { IssueModel } from '../routers/issue-model/issue-model.entity';
 import { Model } from '../routers/model/model.entity';
 import { ModelPredict } from '../routers/model/model-predict.entity';
+import { IssueModelInfo } from '../routers/issue-model/issue-model-info.entity';
+import { User } from '../routers/user/user.entity';
+import { Token } from '../routers/token/token.entity';
 
-export const GITHUB_AUTH_LIST = [${github.tokens.map(token => `'${token}'`).join(',')}];
+export const GITHUB_AUTH_LIST = [${github.tokens
+  .map((token) => `'${token}'`)
+  .join(",")}];
 
 export const MYSQL_CONNECT_CONFIG: any = {
   type: 'mysql',
@@ -28,7 +33,7 @@ export const MYSQL_CONNECT_CONFIG: any = {
   username: '${mysql.username}',
   password: '${mysql.username}',
   database: '${mysql.username}',
-  entities: [Issue,IssueCollect,IssueModel,Model,ModelPredict],
+  entities: [Issue,IssueCollect,IssueModel,IssueModelInfo,Model,ModelPredict,User,Token],
   synchronize: true,
 };
 
@@ -36,6 +41,10 @@ export const QINIU_AK = '${qiniu.ak}'
 export const QINIU_SK = '${qiniu.sk}'
 export const QINIU_BUCKET = '${qiniu.bucket}'
 export const QINIU_BUCKET_URL = '${qiniu.bucket_url}'
+
+export const ADMIN_ACCOUNTS =  [${project.server.admin
+  .map((account) => `'${account}'`)
+  .join(",")}]
 `;
 
 const model_config_config = `

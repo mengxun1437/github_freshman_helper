@@ -5,6 +5,11 @@ import { BASE_QINIU_URL, BASE_SERVER_URL } from "../common/index";
 axios.interceptors.response.use((res) => {
   try {
     if (res?.status === 200) {
+      // admin error
+      if (res?.data?.code === 40301) {
+        notification.error({ message: "Please use admin account to login" });
+        return {};
+      }
       return res?.data;
     }
     return res?.data || {};
@@ -43,6 +48,37 @@ export const _post = async (url: string, body: any = {}) => {
     method: "POST",
     url,
     data: body,
+  });
+};
+
+// token
+export const USER_TOKEN = async () => {
+  const userid = window.localStorage.getItem("userId") || "";
+  const token = window.localStorage.getItem("token") || "";
+  return await axios({
+    baseURL,
+    timeout: 0,
+    method: "POST",
+    url: "/token/",
+    headers: {
+      userid,
+      token,
+    },
+  });
+};
+
+export const ADMIN_TOKEN = async () => {
+  const userid = window.localStorage.getItem("userId") || "";
+  const token = window.localStorage.getItem("token") || "";
+  return await axios({
+    baseURL,
+    timeout: 0,
+    method: "POST",
+    url: "/token/admin",
+    headers: {
+      userid,
+      token,
+    },
   });
 };
 

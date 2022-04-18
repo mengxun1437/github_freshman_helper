@@ -1,39 +1,27 @@
 import {
   InboxOutlined,
-  LineChartOutlined,
-  PieChartOutlined,
+  LineChartOutlined
 } from "@ant-design/icons";
 import { Tabs } from "antd";
 import { Issues } from "./Issues";
-import { Trend } from "./Trend";
+import { Analysis } from './Analysis';
 
 const { TabPane } = Tabs;
 
 export const IndexTabs = (props: any) => {
   return (
-    <Tabs defaultActiveKey="ISSUES" centered tabBarGutter={100}>
+    <Tabs defaultActiveKey="ISSUES" centered tabBarGutter={200}>
       {/* 趋势图 */}
       <TabPane
         tab={
           <span>
             <LineChartOutlined />
-            TREND
+            Analysis
           </span>
         }
-        key="TREND"
+        key="Analysis"
       >
-        <Trend style={{ marginTop: 50 }} />
-      </TabPane>
-      <TabPane
-        tab={
-          <span>
-            <PieChartOutlined />
-            STATISTICS
-          </span>
-        }
-        key="STATISTICS"
-      >
-        STATISTICS
+        <Analysis style={{ marginTop: 50 }} />
       </TabPane>
       <TabPane
         tab={

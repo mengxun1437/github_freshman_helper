@@ -1,4 +1,5 @@
 import { PageHeader, Row, Statistic } from "antd";
+import { CSSProperties } from "react";
 
 export interface DataViewPageHeader {
   data: {
@@ -7,21 +8,23 @@ export interface DataViewPageHeader {
   }[];
 }
 
-export const DataViewPageHeader = ({ data }: DataViewPageHeader) => {
+export const DataViewPageHeader = ({ data, style = {},title = '数据总览' }: any) => {
   return (
-    <PageHeader title="数据总览">
-      <Row>
-        {data.map((d, i) => (
-          <Statistic
-            style={{
-              margin: i === 0 ? "0" : "0 10px",
-            }}
-            key={`${d}-${i}`}
-            title={d.title}
-            value={d.value}
-          />
-        ))}
-      </Row>
-    </PageHeader>
+    <div style={style}>
+      <PageHeader title={title}>
+        <Row>
+          {data.map((d: any, i: number) => (
+            <Statistic
+              style={{
+                margin: i === 0 ? "0" : "0 10px",
+              }}
+              key={`${d}-${i}`}
+              title={d.title}
+              value={d.value}
+            />
+          ))}
+        </Row>
+      </PageHeader>
+    </div>
   );
 };

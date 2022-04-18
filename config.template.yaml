@@ -4,6 +4,8 @@ project:
     url: 'http://localhost:xxx'
      # github page proxy
     proxy: 'http://xxx.xxx.xxx/proxy'
+    # admin account
+    admin: [xxx,xxx,xxx]
 
 # mysql
 mysql:
