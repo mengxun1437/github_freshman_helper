@@ -1,4 +1,4 @@
-import { Button, Form, Input, message } from "antd";
+import { Button, Col, Form, Input, message, Row } from "antd";
 import { useRef } from "react";
 import { ADD_NEW_USER, USER_LOGIN } from "../api/api";
 import { useNavigate } from "react-router-dom";
@@ -69,38 +69,55 @@ export const Login = () => {
   const formRef = useRef<any>();
 
   return (
-    <Form
-      ref={(_formRef) => (formRef.current = _formRef)}
-      name="basic"
-      labelCol={{ span: 8 }}
-      wrapperCol={{ span: 16 }}
-      initialValues={{ remember: true }}
-      autoComplete="off"
+    <div
+      style={{
+        width: "100%",
+        height: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
     >
-      <Form.Item
-        label="Username"
-        name="username"
-        rules={[{ required: true, message: "Please input your username!" }]}
+      <Form
+        style={{ width: 400, height: 200 }}
+        ref={(_formRef) => (formRef.current = _formRef)}
+        name="basic"
+        labelCol={{ span: 8 }}
+        wrapperCol={{ span: 16 }}
+        initialValues={{ remember: true }}
+        autoComplete="off"
       >
-        <Input />
-      </Form.Item>
+        <Form.Item
+          label="UserName"
+          name="username"
+          rules={[{ required: true, message: "Please input your username!" }]}
+        >
+          <Input />
+        </Form.Item>
 
-      <Form.Item
-        label="Password"
-        name="password"
-        rules={[{ required: true, message: "Please input your password!" }]}
-      >
-        <Input.Password />
-      </Form.Item>
+        <Form.Item
+          label="Password"
+          name="password"
+          rules={[{ required: true, message: "Please input your password!" }]}
+        >
+          <Input.Password />
+        </Form.Item>
 
-      <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
-        <Button type="primary" onClick={handleLogin}>
-          登录
-        </Button>
-        <Button type="primary" onClick={handleRegist}>
-          注册
-        </Button>
-      </Form.Item>
-    </Form>
+        <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
+          <Row gutter={12} style={{display:'flex',justifyContent:'center'}}>
+            <Col>
+              <Button type="primary" onClick={handleLogin}>
+                登录
+              </Button>
+            </Col>
+            <Col>
+              <Button type="primary" onClick={handleRegist}>
+                注册
+              </Button>
+            </Col>
+          </Row>
+        </Form.Item>
+      </Form>
+    </div>
   );
 };

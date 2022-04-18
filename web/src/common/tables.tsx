@@ -309,7 +309,6 @@ export const issueModelTableProps = {
       desc: "标签",
       selectOptions: [
         { label: "所有状态", value: "all" },
-        { label: "无标签", value: null },
         { label: "good", value: true },
         { label: "bad", value: false },
       ],
