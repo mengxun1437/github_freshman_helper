@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Headers, Post } from '@nestjs/common';
-import { errorBody, successBody } from 'src/common';
+import { errorBody, successBody } from '../../common';
 import { TokenService } from '../token/token.service';
 import { UserService } from './user.service';
 
