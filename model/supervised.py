@@ -2,6 +2,7 @@
 # 监督式学习
 from getopt import getopt
 from matplotlib import pyplot as plt
+import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 from common.utils import logger, set_interval
 from common.get_remote import get_issue_models_list
@@ -10,7 +11,9 @@ from common.qiniu_sdk import upload_data_to_bucket, upload_file_to_bucket
 from common.api import update_model_config
 from sklearn import tree
 from sklearn.model_selection import train_test_split, GridSearchCV
-import json, pickle, graphviz, pydot, os.path, time, sys, atexit
+import json, pickle, graphviz, pydot, os, time, sys, atexit, csv
+# 使用gpu跑程序
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 '''
 -m model_id
@@ -89,11 +92,11 @@ x_train, x_test, y_train, y_test = train_test_split(data, targets, test_size=0.3
 def sklearn_decision_tree():
     logger("start building model : decision tree ")
     decision_tree_id = model_id
-    # _max_depth = [5, 6, 7, 8, 9, 10, None]
-    # _min_samples_split = range(2, 11)
-    # _min_samples_leaf = range(2, 21)
-    # _random_state = [*range(1, 11), None]
-    # _max_features = ['auto', 'sqrt', 'log2', *range(1, len(issue_model_column_list) - 1)]
+    # _max_depth = [5, None]
+    # _min_samples_split = range(2, 4)
+    # _min_samples_leaf = range(2, 3)
+    # _random_state = [*range(1, 2), None]
+    # _max_features = ['auto', 'sqrt', 'log2']
 
     _max_depth = [*range(5, 12, 3), None]
     _min_samples_split = range(2, 11, 3)
@@ -104,7 +107,7 @@ def sklearn_decision_tree():
     time_start = None
     time_end = None
 
-    def get_grid_search():
+    def get_grid_search(x_train,y_train):
         try:
             nonlocal time_start, time_end, _max_depth, _min_samples_split, _min_samples_leaf, _random_state, _max_features
             logger('trying to get the grid search...')
@@ -243,11 +246,65 @@ def sklearn_decision_tree():
             except:
                 pass
 
-    grid_search = get_grid_search()
+    grid_search = get_grid_search(x_train,y_train)
     upload_best_model(grid_search)
     # upload_train_process_graph(grid_search)
     upload_score_config(grid_search)
     upload_best_decision_tree_graph(grid_search)
+
+    # 去掉其中的一个字段，探究其对得分的影响
+    def watch_each_prop_effect():
+        logger('''try to watch each prop's effect''')
+        if not os.path.exists('.log'):
+            os.mkdir('.log')
+        csv_f = open('.log/watch_each_prop_effect.csv', 'w')
+        writer = csv.writer(csv_f)
+        header = ['index', 'prop', '_best_train_score', '_best_test_score','_best_params']
+        writer.writerow(header)
+        try:
+            for idx,prop in enumerate(issue_model_column_list[0:-1]):
+                def remove_index(arr,index):
+                    _arr = list(arr)
+                    del _arr[index]
+                    return _arr
+                _data = list(map(lambda issue_model:remove_index(issue_model,idx)[0:-1] , data_sources))
+                _targets = list(map(lambda issue_model: issue_model[-1], data_sources))
+                _x_train, _x_test, _y_train, _y_test = train_test_split(_data, _targets, test_size=0.3, random_state=10)
+                _grid_search = get_grid_search(_x_train,_y_train)
+                _best_train_score = _grid_search.best_score_
+                _best_test_score = _grid_search.score(_x_test, _y_test)
+                _best_params = _grid_search.best_params_
+                # 数据持久化到csv
+                writer.writerow([idx,prop,_best_train_score,_best_test_score,json.dumps(_best_params)])   
+        except:
+            pass
+        finally:
+            csv_f.close()
+
+    def draw_each_prop_effect():
+        csv_reader = csv.reader(open(".log/watch_each_prop_effect.csv"))
+        render_list = []
+        for idx,line in enumerate(csv_reader):
+            if idx == 0:
+                continue
+            render_list.append(line[1:4])
+        name_list = list(map(lambda _list: _list[0], render_list))
+        train_score_list = list(map(lambda _list: float(_list[1]), render_list))
+        test_score_list = list(map(lambda _list: float(_list[2]), render_list))
+        x = np.arange(len(name_list))
+        bar_width=0.3
+        plt.rcParams['font.sans-serif']=['SimHei']
+        plt.bar(x, train_score_list,bar_width,color='salmon', label='train_score')
+        plt.bar(x + bar_width, test_score_list,bar_width,color='orchid', label='test_score')
+        plt.legend()
+        plt.axhline(y=0.7323509232492198, color='salmon', linestyle='--')
+        plt.axhline(y=0.719573497604322, color='orchid', linestyle='--')
+        plt.xticks(x+bar_width/2,name_list)
+        plt.show()
+        
+        
+    # watch_each_prop_effect()
+    # draw_each_prop_effect()
 
 
 logger('======== model engine : supervised ========')
