@@ -31,11 +31,10 @@ export const errorBody = (message = 'error', data = {}) => ({
   data,
 });
 
-
 export const hashMd5 = (str) => {
-  const md5 = createHash("md5");
-  return md5.update(str).digest("hex")
-}
+  const md5 = createHash('md5');
+  return md5.update(str).digest('hex');
+};
 
 export class OctokitRequest {
   constructor({ sleep = 1000 }) {
@@ -122,7 +121,7 @@ export class Logger {
 
   clearInterval() {
     if (this.useFile && this.intervalId) {
-      console.log(`clear interval ${this.intervalId}`)
+      console.log(`clear interval ${this.intervalId}`);
       clearInterval(this.intervalId);
     }
   }

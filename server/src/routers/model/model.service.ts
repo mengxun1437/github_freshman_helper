@@ -3,7 +3,7 @@ import { Body, Injectable, Post, OnModuleDestroy } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { exec, execSync } from 'child_process';
 import { randomUUID } from 'crypto';
-import { OctokitRequest, PROD_ENV } from '../../common/index';
+import { PROD_ENV } from '../../common/index';
 import { Repository } from 'typeorm';
 import { Model } from './model.entity';
 import { QINIU_BUCKET_URL } from '../../common/constants';

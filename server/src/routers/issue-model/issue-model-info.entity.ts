@@ -26,52 +26,52 @@ export class IssueModelInfo {
 
   // 问题本身
   // title长度
-  @Column()
+  @Column({ default: null })
   titleLength: number;
 
   // issue主体的长度
-  @Column()
+  @Column({ default: null })
   bodyLength: number;
 
   // 评论数
-  @Column()
+  @Column({ default: null })
   commentsNum: number;
 
   // 评论总长度
-  @Column()
+  @Column({ default: null })
   commentsTotalLength: number;
 
   // 参与人数
-  @Column()
+  @Column({ default: null })
   participantsNum: number;
 
   // 受让人 数目
-  @Column()
+  @Column({ default: null })
   assigneesNum: number;
 
   // 是否有链接的pr
-  @Column()
+  @Column({ default: null })
   isLinkedPr: boolean;
 
   // 提问题的人
   // 创建issue的人的github注册时间戳
-  @Column({ type: 'bigint' })
+  @Column({ type: 'bigint',nullable:true })
   creatorCreated: number;
 
   // 创建issue的人的跟随者
-  @Column()
+  @Column({ default: null })
   creatorFollowers: number;
 
   // 问题对应的仓库信息
   // 仓库的star数目
-  @Column()
+  @Column({ default: null })
   starNum: number;
 
   // open issues 的数目
-  @Column()
+  @Column({ default: null })
   openIssuesNum: number;
 
   // 仓库是否有组织
-  @Column()
+  @Column({ default: null })
   hasOrganization: boolean;
 }

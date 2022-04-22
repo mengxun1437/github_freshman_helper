@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Issue } from '../issue/issue.entity';
 import { IssueModel } from './issue-model.entity';
 import {
@@ -62,43 +62,54 @@ export class IssueModelService {
     if (!issue) return {};
     const issueModel: any = {};
     issueModel.issueId = issueId;
-    const issueApiUrl = formatGithubApi(issue.issueApiUrl);
-    const issueInfo = (await octokitRequest.get(issueApiUrl)) || {};
-    issueModel.titleLength = issueInfo?.title?.length || 0;
-    issueModel.bodyLength = issueInfo?.body?.length || 0;
-    issueModel.commentsNum = issueInfo?.comments || 0;
-    issueModel.assigneesNum = issueInfo?.assignees?.length || 0;
-    issueModel.isLinkedPr = issueInfo?.pull_request !== undefined;
+    try {
+      const issueApiUrl = formatGithubApi(issue.issueApiUrl);
+      const issueInfo = (await octokitRequest.get(issueApiUrl)) || {};
+      issueModel.titleLength = issueInfo?.title?.length || 0;
+      issueModel.bodyLength = issueInfo?.body?.length || 0;
+      issueModel.commentsNum = issueInfo?.comments || 0;
+      issueModel.assigneesNum = issueInfo?.assignees?.length || 0;
+      issueModel.isLinkedPr = issueInfo?.pull_request !== undefined;
 
-    const commentsInfo =
-      (await octokitRequest.get(issueInfo?.comments_url)) || [];
-    issueModel.commentsTotalLength = commentsInfo?.reduce(
-      (pre, cur) => pre + (cur?.body?.length || 0),
-      0,
-    );
+      const commentsInfo =
+        (await octokitRequest.get(formatGithubApi(issueInfo?.comments_url))) ||
+        [];
+      issueModel.commentsTotalLength = commentsInfo?.reduce(
+        (pre, cur) => pre + (cur?.body?.length || 0),
+        0,
+      );
 
-    const creatorInfo = (await octokitRequest.get(issueInfo?.user?.url)) || {};
-    issueModel.creatorCreated = new Date(
-      creatorInfo?.created_at || new Date(),
-    ).getTime();
-    issueModel.creatorFollowers = creatorInfo?.followers || 0;
+      const creatorInfo =
+        (await octokitRequest.get(formatGithubApi(issueInfo?.user?.url))) || {};
+      issueModel.creatorCreated = new Date(
+        creatorInfo?.created_at || new Date(),
+      ).getTime();
+      issueModel.creatorFollowers = creatorInfo?.followers || 0;
 
-    const eventsInfo = (await octokitRequest.get(issueInfo?.events_url)) || [];
-    const participantsSet = new Set();
-    eventsInfo.forEach((event) => {
-      if (event?.actor?.id) {
-        participantsSet.add(event?.actor?.id);
-      }
-    });
-    issueModel.participantsNum = participantsSet.size;
+      const eventsInfo =
+        (await octokitRequest.get(formatGithubApi(issueInfo?.events_url))) ||
+        [];
+      const participantsSet = new Set();
+      eventsInfo.forEach((event) => {
+        if (event?.actor?.id) {
+          participantsSet.add(event?.actor?.id);
+        }
+      });
+      issueModel.participantsNum = participantsSet.size;
 
-    const repoInfo =
-      (await octokitRequest.get(issueInfo?.repository_url)) || {};
-    issueModel.starNum = repoInfo?.stargazers_count || 0;
-    issueModel.openIssuesNum = repoInfo?.open_issues_count || 0;
-    issueModel.hasOrganization = repoInfo?.organization?.id !== undefined;
+      const repoInfo =
+        (await octokitRequest.get(
+          formatGithubApi(issueInfo?.repository_url),
+        )) || {};
+      issueModel.starNum = repoInfo?.stargazers_count || 0;
+      issueModel.openIssuesNum = repoInfo?.open_issues_count || 0;
+      issueModel.hasOrganization = repoInfo?.organization?.id !== undefined;
 
-    return issueModel;
+      return issueModel;
+    } catch (e) {
+      // console.log(e);
+      return {};
+    }
   }
 
   async updateModel(issueModel: any) {
@@ -245,7 +256,7 @@ export class IssueModelService {
       useFile: true,
     });
     try {
-      const octokitRequest = new OctokitRequest({ sleep: 500 });
+      const octokitRequest = new OctokitRequest({ sleep: 50 });
       const issues = await this.issueRepository.query(
         `select * from issue where (issue.isGoodTag = 1 or issue.isGoodTag = 0) and issue.issueId not in (select issueId from issue_model)`,
       );
@@ -288,29 +299,41 @@ export class IssueModelService {
         path: 'C:\\MyProjects\\github_freshman_helper\\server\\src\\routers\\issue-model\\open-model-info.log',
       },
     });
-    const octokitRequest = new OctokitRequest({ sleep: 50 });
-    logger.log('getting data');
+    const octokitRequest = new OctokitRequest({});
     const issues = await this.issueRepository.find({
       where: {
         isGoodTag: null,
         issueState: 'open',
       },
     });
-    logger.log(`get ${issues.length} data`);
+    logger.log(`storeOpenModelInfo get ${issues.length} data`);
     // 每10秒otctikts.length组
     const _chunk = chunk(issues, octokits.length);
     for (let i = 0; i < _chunk.length; i++) {
       setTimeout(() => {
         const _curChunk = _chunk[i];
-        logger.log(`current Size ${_curChunk.length}`);
         _curChunk.forEach(async (issue, index) => {
-          logger.log(`${i} ${index} ${issue?.issueId}`);
           const issueModel = await this.getModelNeedDataByIssueId({
             issueId: issue?.issueId,
             _issue: issue,
             _octokitRequest: octokitRequest,
           });
-          await this.issueModelInfoRepository.save(issueModel);
+          console.log(issue.issueId);
+          if (issueModel?.issueId && issueModel?.titleLength !== 0) {
+            await this.issueModelInfoRepository.save(issueModel);
+            logger.log(
+              `issueModel id success:${issue?.issueId}\nissue html link: ${issue?.issueHtmlUrl}\n`,
+            );
+          } else {
+            // 仓库不存在适合默认false
+            await this.issueModelInfoRepository.save({
+              issueId: issue?.issueId,
+              isGoodForFreshman: false,
+            });
+            logger.log(
+              `issueModel id error:${issue?.issueId}\nissue html link: ${issue?.issueHtmlUrl}\n`,
+            );
+          }
         });
       }, i * 10000);
     }
@@ -324,26 +347,25 @@ export class IssueModelService {
         path: 'C:\\MyProjects\\github_freshman_helper\\server\\src\\routers\\issue-model\\batch-predict.log',
       },
     });
-    logger.log('getting data');
     const issues = await this.issueModelInfoRepository.find({
       where: {
         isGoodForFreshman: null,
       },
     });
-    logger.log(`get ${issues.length} data`);
+    logger.log(`startBatchPredict get ${issues.length} data`);
     // 每10秒otctikts.length组
     const _chunk = chunk(issues, 10);
     for (let i = 0; i < _chunk.length; i++) {
       setTimeout(() => {
         const _curChunk = _chunk[i];
-        logger.log(`current Size ${_curChunk.length}`);
         _curChunk.forEach(async (issueModel, index) => {
-          logger.log(`${i} ${index} ${issueModel?.issueId}`);
-          await this.modelService.startPredict({
-            issueId: issueModel.issueId,
-            modelId: '54fd56bf-f435-407f-9f40-31a64aa2dd77',
-            issueModelInfo: issueModel,
-          });
+          if (issueModel.issueId && issueModel.titleLength) {
+            await this.modelService.startPredict({
+              issueId: issueModel.issueId,
+              modelId: '54fd56bf-f435-407f-9f40-31a64aa2dd77',
+              issueModelInfo: issueModel,
+            });
+          }
         });
       }, i * 20000);
     }
