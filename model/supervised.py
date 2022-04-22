@@ -12,8 +12,6 @@ from common.api import update_model_config
 from sklearn import tree
 from sklearn.model_selection import train_test_split, GridSearchCV
 import json, pickle, graphviz, pydot, os, time, sys, atexit, csv
-# 使用gpu跑程序
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 '''
 -m model_id
@@ -44,8 +42,8 @@ except Exception as e:
 log_file = "{}/{}.log".format('.log', model_id)
 if not os.path.exists('.log'):
     os.mkdir('.log')
-log_f = open(log_file, "w+")
-sys.stdout = log_f
+# log_f = open(log_file, "w+")
+# sys.stdout = log_f
 
 # 打印出命令行参数
 logger(
@@ -117,7 +115,7 @@ def sklearn_decision_tree():
                 'min_samples_leaf': _min_samples_leaf,
                 'random_state': _random_state,
                 'max_features': _max_features
-            }, scoring='roc_auc', verbose=1, return_train_score=True)
+            }, scoring='roc_auc', verbose=2, return_train_score=True,n_jobs=-1)
             time_start = time.time()
             t_grid_search.fit(x_train, y_train)
             time_end = time.time()
@@ -257,7 +255,7 @@ def sklearn_decision_tree():
         logger('''try to watch each prop's effect''')
         if not os.path.exists('.log'):
             os.mkdir('.log')
-        csv_f = open('.log/watch_each_prop_effect.csv', 'w')
+        csv_f = open('.log/watch_each_prop_effect_{}.csv'.format(str(int(time.time()))), 'w')
         writer = csv.writer(csv_f)
         header = ['index', 'prop', '_best_train_score', '_best_test_score','_best_params']
         writer.writerow(header)

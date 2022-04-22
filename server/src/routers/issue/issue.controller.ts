@@ -3,10 +3,17 @@ import { IssueService } from './issue.service';
 import { Pagination } from 'nestjs-typeorm-paginate';
 import { Issue } from './issue.entity';
 import * as dayjs from 'dayjs';
+import { Octokit } from 'octokit';
 
 @Controller('issue')
 export class IssueController {
   constructor(private readonly issueService: IssueService) {}
+
+  @Get('/accessToken/:token')
+  async accessToken(@Param('token') token:string){
+    const auth = new Octokit({auth:token})
+    return await auth.request('GET /rate_limit')
+  }
 
   @Get('/getAUnlabelIssueId')
   async getAUnlabelIssueId() {
