@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { octokits } from '../../common/github';
-import { In, Repository } from 'typeorm';
+import { In, MoreThan, Repository } from 'typeorm';
 import { Issue } from './issue.entity';
 import * as dayjs from 'dayjs';
 import { IssueCollect } from './issue-collect.entity';
@@ -419,16 +419,18 @@ export class IssueService {
         path: 'C:\\MyProjects\\github_freshman_helper\\server\\src\\routers\\issue\\issue-state.log',
       },
     });
+    // 检查一周内的创建的issues,每周更新
     const issues = await this.issueRepository.find({
       where: {
         isGoodTag: true,
         issueState: 'open',
+        issueCreated: MoreThan((new Date().getTime() - 31 * 24 * 3600 * 1000).toString())
       },
       order: {
         issueCreated: 'DESC',
       },
     });
-    logger.log(`checkIssueState get ${issues.length} data`);
+    logger.log(`checkIssueState get ${issues.length} data\n`);
     const octokitRequest = new OctokitRequest({ sleep: 50 });
 
     for (let i = 0; i < issues.length; i++) {
@@ -438,7 +440,7 @@ export class IssueService {
       );
       if (data && data.state) {
         logger.log(
-          `${issue.issueId} origin:${issue.issueState} now:${data.state}`,
+          `${issue.issueId} origin:${issue.issueState} now:${data.state}\n`,
         );
         if (data.state !== issue.issueState) {
           await this.issueRepository.save({
