@@ -26,3 +26,22 @@ def set_interval(func, args, sec):
     t.start()
 
     return t
+
+def list_2_dict(props,data):
+    _list = list()
+    for d in data:
+        _dict = dict()
+        for idp,prop in enumerate(props):
+            _dict[prop] = d[idp]
+        _list.append(_dict)
+    return _list
+
+def dict_list_2_list(props,data):
+    _list = list()
+    for d in data:
+        _item = list()
+        for prop in props:
+            _item.append(d[prop])
+        _list.append(_item)
+    return _list
+        

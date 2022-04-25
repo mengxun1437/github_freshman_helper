@@ -1,17 +1,21 @@
 # -*- coding: UTF-8 -*-
 # 监督式学习
 from getopt import getopt
-from matplotlib import pyplot as plt
-import numpy as np
+# from matplotlib import pyplot as plt
+# import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 from common.utils import logger, set_interval
-from common.get_remote import get_issue_models_list
-from common.common import issue_model_column_list, qiniu_bucket_url
+from common.common import qiniu_bucket_url,train_prop_list
 from common.qiniu_sdk import upload_data_to_bucket, upload_file_to_bucket
 from common.api import update_model_config
 from sklearn import tree
 from sklearn.model_selection import train_test_split, GridSearchCV
-import json, pickle, graphviz, pydot, os, time, sys, atexit, csv
+import json, pickle, graphviz, pydot, os, time, sys, atexit
+from dataset import get_data_sources
+
+# 特征提取
+# 可读性分析
+# 主题相似度计算
 
 '''
 -m model_id
@@ -80,7 +84,7 @@ def _update_model_config():
 
 
 # global
-data_sources = get_issue_models_list()
+data_sources = get_data_sources()
 data = list(map(lambda issue_model: issue_model[0:-1], data_sources))
 targets = list(map(lambda issue_model: issue_model[-1], data_sources))
 x_train, x_test, y_train, y_test = train_test_split(data, targets, test_size=0.3, random_state=10)
@@ -100,7 +104,7 @@ def sklearn_decision_tree():
     _min_samples_split = range(2, 11, 3)
     _min_samples_leaf = range(10, 40, 5)
     _random_state = [*range(1, 11, 3), None]
-    _max_features = ['auto', 'sqrt', 'log2', *range(1, len(issue_model_column_list) - 1, 4)]
+    _max_features = ['auto', 'sqrt', 'log2', *range(1, len(train_prop_list) - 1, 4)]
 
     time_start = None
     time_end = None
@@ -109,7 +113,8 @@ def sklearn_decision_tree():
         try:
             nonlocal time_start, time_end, _max_depth, _min_samples_split, _min_samples_leaf, _random_state, _max_features
             logger('trying to get the grid search...')
-            t_grid_search = GridSearchCV(estimator=DecisionTreeClassifier(criterion='gini'), param_grid={
+            # 指定样本权重
+            t_grid_search = GridSearchCV(estimator=DecisionTreeClassifier(criterion='gini',class_weight='balanced'), param_grid={
                 'max_depth': _max_depth,
                 'min_samples_split': _min_samples_split,
                 'min_samples_leaf': _min_samples_leaf,
@@ -147,28 +152,28 @@ def sklearn_decision_tree():
             logger('some error happened when score model to the cloud,error: {}'.format(str(e)))
 
     # TODO: 训练过程图可视化
-    def upload_train_process_graph(_grid_search):
-        try:
-            logger('trying to upload the train process graph to cloud')
-            _grid_results = _grid_search.cv_results_
-            _grid_mean_train_score = _grid_results['mean_train_score']
-            _grid_std_train_score = _grid_results['std_train_score']
-            _grid_mean_test_score = _grid_results['mean_test_score']
-            _grid_std_test_score = _grid_results['std_test_score']
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            fill_x = [*range(_grid_mean_test_score.size)]
-            ax.fill_between(fill_x, _grid_mean_train_score + _grid_std_train_score,
-                            _grid_mean_train_score - _grid_std_train_score, color='b')
-            ax.fill_between(fill_x, _grid_mean_test_score + _grid_std_test_score,
-                            _grid_mean_test_score - _grid_std_test_score, color='r')
-            ax.plot(fill_x, _grid_mean_train_score, 'ko-')
-            ax.plot(fill_x, _grid_mean_test_score, 'g*-')
-            plt.legend()
-            plt.title('GridSearchCV')
-            plt.show()
-        except Exception as e:
-            logger('some error happened when upload score process to the cloud,error: {}'.format(str(e)))
+    # def upload_train_process_graph(_grid_search):
+    #     try:
+    #         logger('trying to upload the train process graph to cloud')
+    #         _grid_results = _grid_search.cv_results_
+    #         _grid_mean_train_score = _grid_results['mean_train_score']
+    #         _grid_std_train_score = _grid_results['std_train_score']
+    #         _grid_mean_test_score = _grid_results['mean_test_score']
+    #         _grid_std_test_score = _grid_results['std_test_score']
+    #         fig = plt.figure()
+    #         ax = fig.add_subplot(111)
+    #         fill_x = [*range(_grid_mean_test_score.size)]
+    #         ax.fill_between(fill_x, _grid_mean_train_score + _grid_std_train_score,
+    #                         _grid_mean_train_score - _grid_std_train_score, color='b')
+    #         ax.fill_between(fill_x, _grid_mean_test_score + _grid_std_test_score,
+    #                         _grid_mean_test_score - _grid_std_test_score, color='r')
+    #         ax.plot(fill_x, _grid_mean_train_score, 'ko-')
+    #         ax.plot(fill_x, _grid_mean_test_score, 'g*-')
+    #         plt.legend()
+    #         plt.title('GridSearchCV')
+    #         plt.show()
+    #     except Exception as e:
+    #         logger('some error happened when upload score process to the cloud,error: {}'.format(str(e)))
 
     def upload_score_config(_grid_search):
         global x_test, y_test
@@ -208,7 +213,7 @@ def sklearn_decision_tree():
         try:
             logger('trying to upload the decision tree graph to cloud')
             dot_data = tree.export_graphviz(_grid_search.best_estimator_
-                                            , feature_names=issue_model_column_list[0:-1]
+                                            , feature_names=train_prop_list[0:-1]
                                             , filled=True
                                             , rounded=True
                                             , out_file=None
@@ -244,61 +249,61 @@ def sklearn_decision_tree():
             except:
                 pass
 
-    grid_search = get_grid_search(x_train,y_train)
-    upload_best_model(grid_search)
-    # upload_train_process_graph(grid_search)
-    upload_score_config(grid_search)
-    upload_best_decision_tree_graph(grid_search)
+    # grid_search = get_grid_search(x_train,y_train)
+    # upload_best_model(grid_search)
+    # # upload_train_process_graph(grid_search)
+    # upload_score_config(grid_search)
+    # upload_best_decision_tree_graph(grid_search)
 
     # 去掉其中的一个字段，探究其对得分的影响
-    def watch_each_prop_effect():
-        logger('''try to watch each prop's effect''')
-        if not os.path.exists('.log'):
-            os.mkdir('.log')
-        csv_f = open('.log/watch_each_prop_effect_{}.csv'.format(str(int(time.time()))), 'w')
-        writer = csv.writer(csv_f)
-        header = ['index', 'prop', '_best_train_score', '_best_test_score','_best_params']
-        writer.writerow(header)
-        try:
-            for idx,prop in enumerate(issue_model_column_list[0:-1]):
-                def remove_index(arr,index):
-                    _arr = list(arr)
-                    del _arr[index]
-                    return _arr
-                _data = list(map(lambda issue_model:remove_index(issue_model,idx)[0:-1] , data_sources))
-                _targets = list(map(lambda issue_model: issue_model[-1], data_sources))
-                _x_train, _x_test, _y_train, _y_test = train_test_split(_data, _targets, test_size=0.3, random_state=10)
-                _grid_search = get_grid_search(_x_train,_y_train)
-                _best_train_score = _grid_search.best_score_
-                _best_test_score = _grid_search.score(_x_test, _y_test)
-                _best_params = _grid_search.best_params_
-                # 数据持久化到csv
-                writer.writerow([idx,prop,_best_train_score,_best_test_score,json.dumps(_best_params)])   
-        except:
-            pass
-        finally:
-            csv_f.close()
+    # def watch_each_prop_effect():
+    #     logger('''try to watch each prop's effect''')
+    #     if not os.path.exists('.log'):
+    #         os.mkdir('.log')
+    #     csv_f = open('.log/watch_each_prop_effect_{}.csv'.format(str(int(time.time()))), 'w')
+    #     writer = csv.writer(csv_f)
+    #     header = ['index', 'prop', '_best_train_score', '_best_test_score','_best_params']
+    #     writer.writerow(header)
+    #     try:
+    #         for idx,prop in enumerate(train_prop_list[0:-1]):
+    #             def remove_index(arr,index):
+    #                 _arr = list(arr)
+    #                 del _arr[index]
+    #                 return _arr
+    #             _data = list(map(lambda issue_model:remove_index(issue_model,idx)[0:-1] , data_sources))
+    #             _targets = list(map(lambda issue_model: issue_model[-1], data_sources))
+    #             _x_train, _x_test, _y_train, _y_test = train_test_split(_data, _targets, test_size=0.3, random_state=10)
+    #             _grid_search = get_grid_search(_x_train,_y_train)
+    #             _best_train_score = _grid_search.best_score_
+    #             _best_test_score = _grid_search.score(_x_test, _y_test)
+    #             _best_params = _grid_search.best_params_
+    #             # 数据持久化到csv
+    #             writer.writerow([idx,prop,_best_train_score,_best_test_score,json.dumps(_best_params)])   
+    #     except:
+    #         pass
+    #     finally:
+    #         csv_f.close()
 
-    def draw_each_prop_effect():
-        csv_reader = csv.reader(open(".log/watch_each_prop_effect.csv"))
-        render_list = []
-        for idx,line in enumerate(csv_reader):
-            if idx == 0:
-                continue
-            render_list.append(line[1:4])
-        name_list = list(map(lambda _list: _list[0], render_list))
-        train_score_list = list(map(lambda _list: float(_list[1]), render_list))
-        test_score_list = list(map(lambda _list: float(_list[2]), render_list))
-        x = np.arange(len(name_list))
-        bar_width=0.3
-        plt.rcParams['font.sans-serif']=['SimHei']
-        plt.bar(x, train_score_list,bar_width,color='salmon', label='train_score')
-        plt.bar(x + bar_width, test_score_list,bar_width,color='orchid', label='test_score')
-        plt.legend()
-        plt.axhline(y=0.7323509232492198, color='salmon', linestyle='--')
-        plt.axhline(y=0.719573497604322, color='orchid', linestyle='--')
-        plt.xticks(x+bar_width/2,name_list)
-        plt.show()
+    # def draw_each_prop_effect():
+    #     csv_reader = csv.reader(open(".log/watch_each_prop_effect.csv"))
+    #     render_list = []
+    #     for idx,line in enumerate(csv_reader):
+    #         if idx == 0:
+    #             continue
+    #         render_list.append(line[1:4])
+    #     name_list = list(map(lambda _list: _list[0], render_list))
+    #     train_score_list = list(map(lambda _list: float(_list[1]), render_list))
+    #     test_score_list = list(map(lambda _list: float(_list[2]), render_list))
+    #     x = np.arange(len(name_list))
+    #     bar_width=0.3
+    #     plt.rcParams['font.sans-serif']=['SimHei']
+    #     plt.bar(x, train_score_list,bar_width,color='salmon', label='train_score')
+    #     plt.bar(x + bar_width, test_score_list,bar_width,color='orchid', label='test_score')
+    #     plt.legend()
+    #     plt.axhline(y=0.7323509232492198, color='salmon', linestyle='--')
+    #     plt.axhline(y=0.719573497604322, color='orchid', linestyle='--')
+    #     plt.xticks(x+bar_width/2,name_list)
+    #     plt.show()
         
         
     # watch_each_prop_effect()

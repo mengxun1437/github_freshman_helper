@@ -65,6 +65,8 @@ export class IssueModelService {
     try {
       const issueApiUrl = formatGithubApi(issue.issueApiUrl);
       const issueInfo = (await octokitRequest.get(issueApiUrl)) || {};
+      issueModel.title = issueInfo?.title;
+      issueModel.issueBody = issueInfo?.body || '-';
       issueModel.titleLength = issueInfo?.title?.length || 0;
       issueModel.bodyLength = issueInfo?.body?.length || 0;
       issueModel.commentsNum = issueInfo?.comments || 0;
@@ -364,8 +366,8 @@ export class IssueModelService {
               modelId: '54fd56bf-f435-407f-9f40-31a64aa2dd77',
               issueModelInfo: issueModel,
             });
-          }else{
-            logger.log(`${issueModel.issueId}\n`)
+          } else {
+            logger.log(`${issueModel.issueId}\n`);
           }
         });
       }, i * 20000);

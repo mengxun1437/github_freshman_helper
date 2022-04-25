@@ -25,6 +25,13 @@ export class IssueModelInfo {
   updateAt: number;
 
   // 问题本身
+
+  @Column({ type: 'text' })
+  issueTitle: string;
+
+  @Column({ type: 'text' })
+  issueBody: string;
+
   // title长度
   @Column({ default: null })
   titleLength: number;
@@ -55,7 +62,7 @@ export class IssueModelInfo {
 
   // 提问题的人
   // 创建issue的人的github注册时间戳
-  @Column({ type: 'bigint',nullable:true })
+  @Column({ type: 'bigint', nullable: true })
   creatorCreated: number;
 
   // 创建issue的人的跟随者

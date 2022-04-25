@@ -148,6 +148,10 @@ export const GET_EVERY_DATE_ISSUE_NUM = async () => {
   return await _get("/issue/getEveryDateIssueNum");
 };
 
+export const CHECK_ISSUE_STATE = async ()=>{
+  return await _post('/issue/checkIssueState')
+}
+
 // issueModel
 export const UPDATE_ISSUE_MODEL = async (issueModel: any) => {
   return await _put(`/issueModel/`, issueModel);
@@ -164,6 +168,14 @@ export const GET_ISSUE_MODELS_PAGINATE = async (params: any) => {
 export const GET_ISSUE_MODELS_BASIC_INFO = async () => {
   return await _get("/issueModel/getIssueModelsBasicInfo");
 };
+
+export const STORE_MODEL_INFO = async() => {
+  return await _post('/issueModel/storeOpenModelInfo')
+}
+
+export const START_BATCH_PREDICT = async() => {
+  return await _post('/issueModel/startBatchPredict')
+}
 
 // model
 export const GET_MODELS_PAGINATE = async (params: any) => {

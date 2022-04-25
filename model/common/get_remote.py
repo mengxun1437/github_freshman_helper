@@ -1,4 +1,6 @@
-from common.utils import logger
+import json
+import os
+from common.utils import logger,list_2_dict
 from config.config import mysql_config
 from common.common import issue_model_column_list
 import pymysql
@@ -26,8 +28,21 @@ def get_remote_source():
 
 
 def get_issue_models_list():
+    if not os.path.exists('datasets'):
+        os.mkdir('datasets')
+    if os.path.exists('datasets/remote.json'):
+        f = open('datasets/remote.json')
+        data = json.load(f)
+        f.close()
+        logger('getted {} data from file remote.json'.format(len(data)))
+        return data
     issue_models_tuple = get_remote_source()
     issue_models_list = []
     for issue_model in issue_models_tuple:
         issue_models_list.append(list(issue_model))
-    return issue_models_list
+    data = list_2_dict(issue_model_column_list,issue_models_list)
+    with open('datasets/remote.json','w') as f:
+        logger('write {} data to file remote.json'.format(len(data)))
+        f.write(json.dumps(data))
+        f.close()
+    return data

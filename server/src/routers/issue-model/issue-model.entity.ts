@@ -25,6 +25,12 @@ export class IssueModel {
   updateAt: number;
 
   // 问题本身
+  @Column({type:"text"})
+  issueTitle:string
+
+  @Column({type:'text'})
+  issueBody:string
+
   // title长度
   @Column()
   titleLength: number;

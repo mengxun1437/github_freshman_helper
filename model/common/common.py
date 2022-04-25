@@ -1,4 +1,10 @@
-issue_model_column_list = ['titleLength', 'bodyLength', 'commentsNum',
+issue_model_column_list = ['titleLength', 'bodyLength', 'commentsNum','issueTitle','issueBody',
+                           'commentsTotalLength',
+                           'participantsNum', 'assigneesNum', 'creatorCreated', 'creatorFollowers',
+                           'starNum',
+                           'openIssuesNum', 'hasOrganization', 'isGoodForFreshman']
+train_prop_list = ['titleLength', 'bodyLength', 'commentsNum','titleReadability','bodyReadability',
+                           'titleTopic','bodyTopic',
                            'commentsTotalLength',
                            'participantsNum', 'assigneesNum', 'creatorCreated', 'creatorFollowers',
                            'starNum',

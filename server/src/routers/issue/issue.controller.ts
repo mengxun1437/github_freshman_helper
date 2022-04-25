@@ -76,8 +76,8 @@ export class IssueController {
   @Post('/fallbackIssue')
   async fallbackIssue(@Body() body: any) {
     const { type } = body;
-    if (type === 'fixIssueTitleLost') {
-      return await this.issueService.fixIssueTitleLost();
+    if (type === 'fixIssueInfoLost') {
+      return await this.issueService.fixIssueInfoLost();
     }
     if (type === 'fixIssueAddRepo') {
       await this.issueService.fixIssueAddRepo();

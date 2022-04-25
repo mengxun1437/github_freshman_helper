@@ -10,6 +10,9 @@ export class Issue {
   @Column({ type: 'text' })
   issueTitle: string;
 
+  @Column({ type: 'text' })
+  issueBody: string;
+
   // issue的状态
   @Column()
   issueState: string;

@@ -9,7 +9,7 @@ import {
   Input,
 } from "antd";
 import { CSSProperties, useState } from "react";
-import { START_RUN_A_MODEL, START_PREDICT, GET_A_UNLABEL_ISSUE_ID } from '../api/api';
+import { START_RUN_A_MODEL, START_PREDICT, GET_A_UNLABEL_ISSUE_ID, COLLECT_FIRST_ISSUES, STORE_MODEL_INFO, START_BATCH_PREDICT, CHECK_ISSUE_STATE } from '../api/api';
 const { Text } = Typography;
 
 const gridStyle: CSSProperties = {
@@ -25,9 +25,10 @@ enum START_NEW_MODEL_STATUS_CODE {
 
 enum ABILITY {
   COLLECT = 'COLLECT',
-  LABEL = 'LABEL',
+  STORE = 'STORE',
   TRAIN = "TRAIN",
   PREDICT = "PREDICT",
+  CHECK_ISSUE_STATE="CHECK_ISSUE_STATE"
 }
 
 const cardList = [
@@ -38,23 +39,29 @@ const cardList = [
     btn: "开始收集",
   },
   {
-    key: ABILITY.LABEL,
-    title: "打标签",
-    desc: "判断是否适合新手，并收集到训练集中",
-    btn: "去打标签",
-  },
-  {
     key: ABILITY.TRAIN,
     title: "训练模型",
     desc: "你可以更新模型",
     btn: "开始训练",
   },
   {
-    key: ABILITY.PREDICT,
-    title: "预测",
-    desc: "你可以预测一个issue是否适合新手完成",
-    btn: "开始预测",
+    key: ABILITY.STORE,
+    title: "收集参数",
+    desc: "收集分类训练需要的参数信息",
+    btn: "开始收集",
   },
+  {
+    key: ABILITY.PREDICT,
+    title: "分类",
+    desc: "对收集到的open issue进行批量分类",
+    btn: "开始分类",
+  },
+  {
+    key:ABILITY.CHECK_ISSUE_STATE,
+    title:'更新issue状态',
+    desc:"检查前端展示的issue状态并更新",
+    btn:"更新状态"
+  }
 ];
 
 export const Ability = () => {
@@ -72,13 +79,12 @@ export const Ability = () => {
     }
     // TODO: 模型的选择需要拓展，目前展示不拓展
     if(key === ABILITY.COLLECT){
-      // COLLECT_FIRST_ISSUES()
-      message.info("此功能暂不开放")
-    }else if(key === ABILITY.LABEL){
-      GET_A_UNLABEL_ISSUE_ID().then((data:any)=>{
-        window.open(`${window.location.origin}/label/${data}`,'_blank')
-      }).catch(()=>{
-        message.error('获取issueId失败')
+      COLLECT_FIRST_ISSUES().then(()=>{
+        message.info('正在收集')
+      })
+    }else if(key === ABILITY.STORE){
+      STORE_MODEL_INFO().then(()=>{
+        message.info('正在收集')
       })
     }else if (key === ABILITY.TRAIN) {
       START_RUN_A_MODEL()
@@ -92,6 +98,15 @@ export const Ability = () => {
         .catch((e) => {
           message.error(e?.message || "服务端错误");
         });
+    }else if(key === ABILITY.PREDICT){
+      START_BATCH_PREDICT().then(() => {
+        message.info("正在批量分类")
+      })
+    }
+    else if(key === ABILITY.CHECK_ISSUE_STATE){
+      CHECK_ISSUE_STATE().then(() => {
+        message.info("正在更新...")
+      })
     }
   };
 
@@ -127,7 +142,7 @@ export const Ability = () => {
 
   return (
     <>
-      <Card bordered={false}>
+      <Card bordered={false} style={{height:'100%'}}>
         {cardList.map((card) => {
           return (
             <Card.Grid key={card.key} title={card.title} style={gridStyle}>
@@ -158,7 +173,7 @@ export const Ability = () => {
           );
         })}
       </Card>
-      <Drawer
+      {/* <Drawer
         title={""}
         placement="right"
         size="large"
@@ -189,7 +204,7 @@ export const Ability = () => {
         ) : (
           <></>
         )}
-      </Drawer>
+      </Drawer> */}
     </>
   );
 };

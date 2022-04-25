@@ -228,20 +228,22 @@ export class IssueService {
   // 实例
   _getNewIssue(d) {
     const newIssue = new Issue();
-    (newIssue.issueId = d?.id),
-      (newIssue.issueTitle = d?.title),
-      (newIssue.issueState = d?.state),
-      (newIssue.issueLinkedPr = d?.pull_request !== undefined),
-      (newIssue.issueLinkedPrInfo = JSON.stringify(d?.pull_request || {})),
-      (newIssue.issueApiUrl = d?.url),
-      (newIssue.issueHtmlUrl = d?.html_url),
-      (newIssue.issueRepo = d?.html_url
-        ?.slice(18)
-        ?.match(/(?<=\/).*?\/.*?(?=\/)/g)?.[0]),
-      (newIssue.issueCommentsApiUrl = d?.comments_url),
-      (newIssue.issueCreated = d?.created_at),
-      (newIssue.issueUpdated = d?.updated_at),
-      (newIssue.collectedTime = dayjs().format('YYYY-MM-DD'));
+    newIssue.issueId = d?.id;
+    newIssue.issueBody = d?.body || '-';
+    newIssue.issueTitle = d?.title;
+    newIssue.issueState = d?.state;
+    newIssue.issueLinkedPr = d?.pull_request !== undefined;
+    newIssue.issueLinkedPrInfo = JSON.stringify(d?.pull_request || {});
+    newIssue.issueApiUrl = d?.url;
+    newIssue.issueHtmlUrl = d?.html_url;
+    newIssue.issueRepo = d?.html_url
+      ?.slice(18)
+      ?.match(/(?<=\/).*?\/.*?(?=\/)/g)?.[0];
+    newIssue.issueCommentsApiUrl = d?.comments_url;
+    newIssue.issueCreated = d?.created_at;
+    newIssue.issueUpdated = d?.updated_at;
+    newIssue.collectedTime = dayjs().format('YYYY-MM-DD');
+
     return newIssue;
   }
 
@@ -312,39 +314,34 @@ export class IssueService {
     }, 2000);
   }
 
-  // 批量获取issueTitle缺失的部分
-  async fixIssueTitleLost(): Promise<any> {
-    const issueTitlsLostList = await this.issueRepository.find({
-      issueTitle: '',
-    });
-    console.log('issueTitlsLostList length:', issueTitlsLostList.length);
-    const series = chunk(issueTitlsLostList, octokits.length);
-    let i = 0;
-    setInterval(async () => {
-      if (i < series.length) {
-        const curGroup = series[i];
-        for (let j = 0; j < curGroup.length; j++) {
-          try {
-            const issue = curGroup[j];
-            console.log(
-              `\ntrying to fix title lost index: (${i},${j}) titleId:${issue.issueId}`,
-            );
-            const resp = await octokits[j].request(
-              `GET ${formatGithubApi(issue.issueApiUrl)}`,
-            );
-            console.log(`authIndex:${j} resp status:${resp?.status}`);
-            if (resp?.status === 200) {
-              issue.issueTitle = resp?.data?.title || '';
-              this.issueRepository.save(issue);
-            }
-          } catch (e) {
-            console.log(e.message);
-          }
+  // 批量获取issueInfo缺失的部分
+  async fixIssueInfoLost(): Promise<any> {
+    const infoLostList = await this.issueRepository.query(
+      `select * from issue where issueId in (select issueId from issue_model) and issueBody = ''`,
+    );
+    console.log('lost length:', infoLostList.length);
+    const octokitRequest = new OctokitRequest({ sleep: 350 });
+    for (let i = 0; i < infoLostList.length; i++) {
+      try {
+        const issue = infoLostList[i];
+        console.log(`\ntrying to fix lost index: ${i} id:${issue.issueId}`);
+        const resp = await octokitRequest.get(
+          formatGithubApi(issue.issueApiUrl),
+        );
+        console.log(`use ${octokitRequest.authIndex} resp id:${resp.id}`);
+        if (resp?.id) {
+          // issue.issueTitle = resp?.data?.title || '';
+          const issueBody = resp?.body || '-';
+          await this.issueRepository.save({
+            issueId: issue.issueId,
+            issueBody,
+          });
         }
-        i++;
+      } catch (e) {
+        console.log(e.message);
       }
-    }, 500);
-    return issueTitlsLostList;
+    }
+    return 'success';
   }
 
   // 将repo添加到数据库字段中
@@ -422,7 +419,7 @@ export class IssueService {
     const issues = await this.issueRepository.find({
       where: {
         isGoodTag: true,
-        issueState: 'open'
+        issueState: 'open',
       },
       order: {
         issueCreated: 'DESC',
