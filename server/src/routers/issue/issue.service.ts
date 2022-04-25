@@ -6,7 +6,7 @@ import { Issue } from './issue.entity';
 import * as dayjs from 'dayjs';
 import { IssueCollect } from './issue-collect.entity';
 import * as lodash from 'lodash';
-import { formatGithubApi } from '../../common/index';
+import { formatGithubApi, OctokitRequest } from '../../common/index';
 import { IssueModel } from '../issue-model/issue-model.entity';
 const { chunk } = lodash;
 import {
@@ -14,6 +14,7 @@ import {
   Pagination,
   IPaginationOptions,
 } from 'nestjs-typeorm-paginate';
+import { Logger as WsLogger } from '@mengxun/ws-logger';
 
 @Injectable()
 export class IssueService {
@@ -84,11 +85,11 @@ export class IssueService {
   // 获取issues分页
   async getIssuesPaginate(
     options: IPaginationOptions,
-    where:any = {},
+    where: any = {},
   ): Promise<Pagination<Issue>> {
-    if(where.issueIds){
-      where.issueId = In(where.issueIds)  
-      delete where.issueIds
+    if (where.issueIds) {
+      where.issueId = In(where.issueIds);
+      delete where.issueIds;
     }
     let queryBuilder = this.issueRepository
       .createQueryBuilder('issue')
@@ -408,5 +409,46 @@ export class IssueService {
         ORDER BY
           substr(issueCreated, 1, 7)`);
     return data;
+  }
+
+  // 检查open issue isGoodTag = 1的状态是否closed
+  async checkIssueState() {
+    const logger = new WsLogger({
+      interval: 1000,
+      file: {
+        path: 'C:\\MyProjects\\github_freshman_helper\\server\\src\\routers\\issue\\issue-state.log',
+      },
+    });
+    const issues = await this.issueRepository.find({
+      where: {
+        isGoodTag: true,
+        issueState: 'open',
+      },
+      order: {
+        issueCreated: 'DESC',
+      },
+    });
+    logger.log(`checkIssueState get ${issues.length} data`);
+    const octokitRequest = new OctokitRequest({ sleep: 50 });
+
+    for (let i = 0; i < issues.length; i++) {
+      const issue = issues[i];
+      const data: any = await octokitRequest.get(
+        formatGithubApi(issue.issueApiUrl),
+      );
+      if (data && data.state) {
+        logger.log(
+          `${issue.issueId} origin:${issue.issueState} now:${data.state}`,
+        );
+        if (data.state !== issue.issueState) {
+          await this.issueRepository.save({
+            issueId: issue.issueId,
+            issueState: data.state,
+          });
+        }
+      } else {
+        logger.log(`${issue.issueId} get state error`);
+      }
+    }
   }
 }

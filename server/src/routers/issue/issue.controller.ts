@@ -92,4 +92,13 @@ export class IssueController {
       return [];
     }
   }
+
+  @Post("/checkIssueState")
+  async checkIssueState(){
+    try{
+      await this.issueService.checkIssueState()
+    }catch(e){
+      console.log(e)
+    }
+  }
 }

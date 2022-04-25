@@ -2,15 +2,17 @@ import { Column, Entity, PrimaryColumn } from 'typeorm';
 
 @Entity()
 export class ModelPredict {
-
   @PrimaryColumn()
-  bid:string
+  bid: string;
 
   @Column()
-  modelId:string
+  modelId: string;
+
+  @Column({ nullable: true })
+  issueId: string;
 
   @Column()
-  isGoodForFreshman:boolean
+  isGoodForFreshman: boolean;
 
   @Column({ default: new Date().getTime(), type: 'bigint' })
   createdAt: number;

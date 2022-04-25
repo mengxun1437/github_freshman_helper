@@ -48,7 +48,8 @@ try:
                 data={
                     'bid': bid,
                     'modelId': model_id,
-                    'isGoodForFreshman': predict_result
+                    'isGoodForFreshman': predict_result,
+                    'issueId': issue['issueId']
                 })
             if resp.status_code != 200:
                 print('report predict error: {}'.format(resp.text))

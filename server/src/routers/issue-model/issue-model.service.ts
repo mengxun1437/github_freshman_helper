@@ -318,7 +318,6 @@ export class IssueModelService {
             _issue: issue,
             _octokitRequest: octokitRequest,
           });
-          console.log(issue.issueId);
           if (issueModel?.issueId && issueModel?.titleLength !== 0) {
             await this.issueModelInfoRepository.save(issueModel);
             logger.log(
@@ -365,6 +364,8 @@ export class IssueModelService {
               modelId: '54fd56bf-f435-407f-9f40-31a64aa2dd77',
               issueModelInfo: issueModel,
             });
+          }else{
+            logger.log(`${issueModel.issueId}\n`)
           }
         });
       }, i * 20000);
