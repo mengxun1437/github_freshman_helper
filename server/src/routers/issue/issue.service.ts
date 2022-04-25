@@ -419,12 +419,10 @@ export class IssueService {
         path: 'C:\\MyProjects\\github_freshman_helper\\server\\src\\routers\\issue\\issue-state.log',
       },
     });
-    // 检查一周内的创建的issues,每周更新
     const issues = await this.issueRepository.find({
       where: {
         isGoodTag: true,
-        issueState: 'open',
-        issueCreated: MoreThan((new Date().getTime() - 31 * 24 * 3600 * 1000).toString())
+        issueState: 'open'
       },
       order: {
         issueCreated: 'DESC',
