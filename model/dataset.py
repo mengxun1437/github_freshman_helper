@@ -3,29 +3,37 @@
 
 import json
 import os
-import pickle
-
-from sklearn.model_selection import GridSearchCV
+from gensim import corpora
+from gensim.models import LdaModel,CoherenceModel
 from common.utils import dict_list_2_list,logger
 from common.common import train_prop_list
 from common.get_remote import get_issue_models_list
-import joblib 
 import textstat
-from sklearn.decomposition import LatentDirichletAllocation
-from sklearn.feature_extraction.text import CountVectorizer
 import nltk
 nltk.download('punkt')
 nltk.download('stopwords')
 import string
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
+# import logging
+# logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+import pyLDAvis
+import pyLDAvis.gensim_models
+import matplotlib.pyplot as plt
+import numpy as np
 
 # global
-tf_title = None
-tf_body = None
 lda_title = None
 lda_body = None
+issue_titles = []
+issue_bodies = []
 data_sources = list()
+
+# prepare
+if not os.path.exists('datasets'):
+    os.mkdir('datasets')
+if not os.path.exists('datasets/models'):
+    os.mkdir('datasets/models')
 
 # 文本预处理
 def text_precessing(text):
@@ -48,82 +56,91 @@ def text_precessing(text):
         # 基本处理
         'basic': " ".join(text.split()),
         # 去除停用词和词干化后的结果
-        'filtered':" ".join(filtered)  
+        'filtered': filtered  
     }
 
+# 调参，并将每组参数的数据记录下来, 并结合pyLDAvis绘制图形,寻找出主题离散层度较大的那一个
+def lda_model_tune(corpus,id2word,texts,dictionary,type = 'title'):
+    n_topics_list = [10, 20, 30, 40, 50]
+    iterations_list = [500,1000,1500,2000]
+    lda_list = []
+    for n_topics in n_topics_list:
+        for iterations in iterations_list:
+            print('trainning n_topics:{} iterations:{}'.format(n_topics,iterations))
+            lda = LdaModel(corpus=corpus, id2word=id2word, num_topics=n_topics, iterations=iterations)
+            lda_list.append({
+                'n_topics':n_topics,
+                'iterations':iterations,
+                'lda':lda
+            })
+            lda.save('datasets/models/{}_n_topics_{}_iterations_{}.model'.format(type,n_topics,iterations))
+            lda_data =  pyLDAvis.gensim_models.prepare(lda,corpus,id2word,mds='mmds')
+            pyLDAvis.save_html(lda_data,'datasets/models/{}_n_topics_{}_iterations_{}.html'.format(type,n_topics,iterations))
+    
 
-# 词汇统计
-def count_vectorizer(issue_titles = [],issue_bodies = []):
-    global tf_title,tf_body
-    tf_title_path = 'datasets/tf_title_count_vectorizer.pkl'
-    tf_body_path = 'datasets/tf_body_count_vectorizer.pkl'
-    if os.path.exists(tf_title_path):
-        logger('getted tf_title count_vectorizer from file')
-        tf_title = joblib.load(tf_title_path)
-        
-    if os.path.exists(tf_body_path):
-        logger('getted tf_body count_vectorizer from file')
-        tf_body = joblib.load(tf_body_path)
-        
+    # 先使用CoherenceModel初步判断主题相关性
+    for idx,_lda in enumerate(lda_list):
+        cm = CoherenceModel(model=_lda['lda'],texts = texts, dictionary=dictionary, corpus=corpus,coherence='u_mass')
+        coherence = cm.get_coherence() 
+        lda_list[idx]['coherence'] = coherence
+        del lda_list[idx]['lda']
 
-    tf_title_model = tf_body_model = CountVectorizer(max_df=0.95, min_df=2,
-                            stop_words='english')
+    with open('datasets/models/coherence_{}.json'.format(type),'w') as f:
+        f.write(json.dumps(lda_list))
+        f.close() 
 
-    if tf_title == None:
-        tf_title_model.fit_transform(issue_titles)
-        tf_title = tf_title_model
-        logger('write tf_title count_vectorizer to file')
-        joblib.dump(tf_title,tf_title_path)
-        
-    if tf_body == None:
-        tf_body_model.fit_transform(issue_bodies)
-        tf_body = tf_body_model
-        logger('write tf_body count_vectorizer to file')
-        joblib.dump(tf_body,tf_body_path)
+    # 绘制三维视图
+    x = list(map(lambda _x: _x['n_topics'],lda_list))
+    y = list(map(lambda _y: _y['iterations'],lda_list))
+    z = list(map(lambda _z: _z['coherence'],lda_list))
+    fig = plt.figure()
+    ax1 = plt.axes(projection='3d')
+    ax1.plot3D(x,y,z,'gray')    #绘制空间曲线
+    plt.savefig('datasets/models/coherence_{}.png'.format(type))
+    # plt.show()
+
 
 # LDA主题分析
 def lda_model():
-    global lda_title,lda_body
-    lda_title_path = 'datasets/lda_title_model.pkl'
-    lda_body_path = 'datasets/lda_body_model.pkl'
+    global lda_title,lda_body,issue_titles,issue_bodies,corpus_title,corpus_body
+    lda_title_path = 'datasets/lda_title.model'
+    lda_body_path = 'datasets/lda_body.model'
     if os.path.exists(lda_title_path):
         logger('getted lda_title_model from file')
-        lda_title = joblib.load(lda_title_path)
+        lda_title = LdaModel.load(lda_title_path)
         
     if os.path.exists(lda_body_path):
         logger('getted lda_body_model from file')
-        lda_body = joblib.load(lda_body_path)
-    
-    # 基于skitlearn LDA训练分别训练title/body topic
-    parameters = {
-              'n_components':range(20, 100, 10),
-              'max_iter':[10,100,1000]
-              }
-  
-    lda_title_model = lda_body_model = GridSearchCV(estimator=LatentDirichletAllocation(),
-                        param_grid=parameters,
-                        refit=True,
-                        n_jobs=-1,
-                        verbose=2) 
+        lda_body = LdaModel.load(lda_body_path)    
 
     if lda_title == None:
-        lda_title_model.fit(tf_title)
-        lda_title = lda_title_model
+        dictionary_title = corpora.Dictionary(issue_titles)
+        dictionary_title.save('datasets/dictionary_title.dict')
+        corpus_title = [dictionary_title.doc2bow(text) for text in issue_titles]
+        corpora.MmCorpus.serialize('datasets/corpus_title.mm', corpus_title)
+        # lda_model_tune(corpus=corpus_title,id2word=dictionary_title,texts=issue_titles,dictionary=dictionary_title,type = 'title')
+        # 10 1500
+        lda_title = LdaModel(corpus=corpus_title, id2word=dictionary_title, num_topics=10,iterations=1500)
         logger('write lda_title_model to file')
-        joblib.dump(lda_title,lda_title_path)
+        lda_title.save(lda_title_path)
         
     if lda_body == None:
-        lda_body_model.fit(tf_body)
-        lda_body = lda_body_model
+        dictionary_body = corpora.Dictionary(issue_bodies)
+        dictionary_body.save('datasets/dictionary_body.dict')
+        corpus_body= [dictionary_body.doc2bow(text) for text in issue_bodies]
+        corpora.MmCorpus.serialize('datasets/corpus_body.mm', corpus_body)
+        # lda_model_tune(corpus=corpus_body,id2word=dictionary_body,texts=issue_bodies,dictionary=dictionary_body,type = 'body')
+        # 10 1500
+        lda_body = LdaModel(corpus=corpus_body, id2word=dictionary_body, num_topics=10,iterations=1500)
         logger('write lda_body_model to file')
-        joblib.dump(lda_body,lda_body_path)
+        lda_body.save(lda_body_path)
 
 def get_data_sources():
-    if not os.path.exists('datasets'):
-        os.mkdir('datasets')
+    global issue_titles,issue_bodies
+    datasets_path = 'datasets/data.json'
 
-    if os.path.exists('datasets/data.json'):
-        data_f = open('datasets/data.json')
+    if os.path.exists(datasets_path):
+        data_f = open(datasets_path)
         _data_sources = json.load(data_f)
         logger('getted {} data from file data.json'.format(len(_data_sources)))
         data_sources = dict_list_2_list(train_prop_list,_data_sources)       
@@ -141,17 +158,30 @@ def get_data_sources():
             precessd_body = text_precessing(d['issueBody'])
             issue_titles.append(precessd_title['filtered'])
             issue_bodies.append(precessd_body['filtered'])
-            # dict_list[idx]['issueTitle'] = precessd_title['basic']
-            # dict_list[idx]['issueBody'] = precessd_body['basic']
+            dict_list[idx]['issueTitle'] = precessd_title['basic']
+            dict_list[idx]['issueBody'] = precessd_body['basic']
+            # 可读性分析
             dict_list[idx]['titleReadability'] = textstat.flesch_reading_ease(precessd_title['basic'])
             dict_list[idx]['bodyReadability'] = textstat.flesch_reading_ease(precessd_body['basic'])
-            dict_list[idx]['titleTopic'] = ''
-            dict_list[idx]['bodyTopic'] = ''
-        
-        # 统计词汇
-        count_vectorizer(issue_titles,issue_bodies)
+
         # 训练lda模型
         lda_model()
+
+        # 主题数目统计 
+        for idx,d in enumerate(dict_list):
+            issue_title = issue_titles[idx]
+            issue_body = issue_bodies[idx]
+            bow_title = lda_title.id2word.doc2bow(issue_title)
+            bow_body = lda_body.id2word.doc2bow(issue_body)
+            topic_title,title_topic_probability = lda_title.get_document_topics(bow_title, per_word_topics=False)[0]
+            body_title,body_topic_probability = lda_body.get_document_topics(bow_body, per_word_topics=False)[0]
+            # 主题 -> 最大可能性的主题
+            dict_list[idx]['titleTopic'] = topic_title
+            dict_list[idx]['bodyTopic'] = body_title
+            # 主题相关性 -> 最大可能性的主题的可能性
+            dict_list[idx]['titleTopicProbability'] = np.float64(title_topic_probability)
+            dict_list[idx]['bodyTopicProbability'] = np.float64(body_topic_probability)
+        
 
         data_sources = dict_list_2_list(train_prop_list,dict_list)
 
@@ -165,21 +195,12 @@ def get_data_sources():
     return data_sources
 
 # get_data_sources()
-
-def test_lda():
-    count_vectorizer()
-    lda_model()
-    def print_top_words(model, feature_names, n_top_words):
-        #打印每个主题下权重较高的term
-            for topic_idx, topic in enumerate(model.components_):
-                print("Topic #%d:" % topic_idx)
-                print(" ".join([feature_names[i] for i in topic.argsort()[:-n_top_words - 1:-1]]))
-
-    n_top_words=20
-    tf_title_fnames = tf_title.get_feature_names_out()
-    tf_body_fnames = tf_body.get_feature_names_out()
-    lda_body.best_estimator_.print_topic(1,10)
-
-test_lda()
+# def test_lda():
+#     dictionary_title = corpora.Dictionary(issue_titles)
+#     for idx,issue_title in enumerate(issue_titles):
+#         bow_title = lda_title.id2word.doc2bow(issue_title)
+#         a,b = lda_title.get_document_topics(bow_title, per_word_topics=False)[0]
+#         print(a,b)
+# test_lda()
 
     

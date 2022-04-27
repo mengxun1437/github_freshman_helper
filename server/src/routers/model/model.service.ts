@@ -197,6 +197,10 @@ export class ModelService implements OnModuleDestroy {
   async startPredict({ issueId, modelId, issueModelInfo }: any) {
     const bid = randomUUID();
     try {
+      console.log({
+        ...issueModelInfo,
+        issueId,
+      })
       const execCommand = `python ../model/predict.py -i '${new Buffer(
         JSON.stringify({
           ...issueModelInfo,

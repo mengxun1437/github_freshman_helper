@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Not, Repository } from 'typeorm';
 import { Issue } from '../issue/issue.entity';
 import { IssueModel } from './issue-model.entity';
 import {
@@ -351,6 +351,7 @@ export class IssueModelService {
     const issues = await this.issueModelInfoRepository.find({
       where: {
         isGoodForFreshman: null,
+        issueBody:Not('')
       },
     });
     logger.log(`startBatchPredict get ${issues.length} data`);

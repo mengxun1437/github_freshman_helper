@@ -4,6 +4,7 @@ from getopt import getopt
 # from matplotlib import pyplot as plt
 # import numpy as np
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 from common.utils import logger, set_interval
 from common.common import qiniu_bucket_url,train_prop_list
 from common.qiniu_sdk import upload_data_to_bucket, upload_file_to_bucket
@@ -38,6 +39,11 @@ try:
             model_program = opt_value
         if opt_name == '-l':
             is_prod_env = False
+    update_model_config({
+        "modelId": model_id,
+        "modelFramework": model_framework,
+        "modelProgram": model_program
+    }, local=not is_prod_env)
 
 except Exception as e:
     logger('get model id error: {}'.format(str(e)))
@@ -94,17 +100,18 @@ x_train, x_test, y_train, y_test = train_test_split(data, targets, test_size=0.3
 def sklearn_decision_tree():
     logger("start building model : decision tree ")
     decision_tree_id = model_id
-    # _max_depth = [5, None]
-    # _min_samples_split = range(2, 4)
-    # _min_samples_leaf = range(2, 3)
-    # _random_state = [*range(1, 2), None]
-    # _max_features = ['auto', 'sqrt', 'log2']
 
-    _max_depth = [*range(5, 12, 3), None]
-    _min_samples_split = range(2, 11, 3)
-    _min_samples_leaf = range(10, 40, 5)
-    _random_state = [*range(1, 11, 3), None]
-    _max_features = ['auto', 'sqrt', 'log2', *range(1, len(train_prop_list) - 1, 4)]
+    _max_depth = [8,10,None]
+    _min_samples_split = [4,12]
+    _min_samples_leaf = [2,9]
+    _random_state = [2,10]
+    _max_features = [9,13]
+
+    # _max_depth = [*range(5, 12, 3), None]
+    # _min_samples_split = range(2, 11, 3)
+    # _min_samples_leaf = range(10, 40, 5)
+    # _random_state = [*range(1, 11, 3), None]
+    # _max_features = ['auto', 'sqrt', 'log2', *range(1, len(train_prop_list) - 1, 4)]
 
     time_start = None
     time_end = None
@@ -138,6 +145,7 @@ def sklearn_decision_tree():
             logger('trying to upload the decision model to cloud')
             score_model = 'model/{}.pkl'.format(decision_tree_id)
             model = pickle.dumps(_grid_search.best_estimator_)
+            pickle.dump(_grid_search,open('models/{}.pkl'.format(decision_tree_id),'wb'))
             (ret, info) = upload_data_to_bucket(score_model, model)
             if info.status_code == 200:
                 logger('upload the decision model to cloud successfully!')
@@ -150,30 +158,6 @@ def sklearn_decision_tree():
                     ret, info))
         except Exception as e:
             logger('some error happened when score model to the cloud,error: {}'.format(str(e)))
-
-    # TODO: 训练过程图可视化
-    # def upload_train_process_graph(_grid_search):
-    #     try:
-    #         logger('trying to upload the train process graph to cloud')
-    #         _grid_results = _grid_search.cv_results_
-    #         _grid_mean_train_score = _grid_results['mean_train_score']
-    #         _grid_std_train_score = _grid_results['std_train_score']
-    #         _grid_mean_test_score = _grid_results['mean_test_score']
-    #         _grid_std_test_score = _grid_results['std_test_score']
-    #         fig = plt.figure()
-    #         ax = fig.add_subplot(111)
-    #         fill_x = [*range(_grid_mean_test_score.size)]
-    #         ax.fill_between(fill_x, _grid_mean_train_score + _grid_std_train_score,
-    #                         _grid_mean_train_score - _grid_std_train_score, color='b')
-    #         ax.fill_between(fill_x, _grid_mean_test_score + _grid_std_test_score,
-    #                         _grid_mean_test_score - _grid_std_test_score, color='r')
-    #         ax.plot(fill_x, _grid_mean_train_score, 'ko-')
-    #         ax.plot(fill_x, _grid_mean_test_score, 'g*-')
-    #         plt.legend()
-    #         plt.title('GridSearchCV')
-    #         plt.show()
-    #     except Exception as e:
-    #         logger('some error happened when upload score process to the cloud,error: {}'.format(str(e)))
 
     def upload_score_config(_grid_search):
         global x_test, y_test
@@ -249,70 +233,128 @@ def sklearn_decision_tree():
             except:
                 pass
 
-    # grid_search = get_grid_search(x_train,y_train)
-    # upload_best_model(grid_search)
-    # # upload_train_process_graph(grid_search)
-    # upload_score_config(grid_search)
-    # upload_best_decision_tree_graph(grid_search)
+    grid_search = get_grid_search(x_train,y_train)
+    upload_best_model(grid_search)
+    # upload_train_process_graph(grid_search)
+    upload_score_config(grid_search)
+    upload_best_decision_tree_graph(grid_search)
 
-    # 去掉其中的一个字段，探究其对得分的影响
-    # def watch_each_prop_effect():
-    #     logger('''try to watch each prop's effect''')
-    #     if not os.path.exists('.log'):
-    #         os.mkdir('.log')
-    #     csv_f = open('.log/watch_each_prop_effect_{}.csv'.format(str(int(time.time()))), 'w')
-    #     writer = csv.writer(csv_f)
-    #     header = ['index', 'prop', '_best_train_score', '_best_test_score','_best_params']
-    #     writer.writerow(header)
-    #     try:
-    #         for idx,prop in enumerate(train_prop_list[0:-1]):
-    #             def remove_index(arr,index):
-    #                 _arr = list(arr)
-    #                 del _arr[index]
-    #                 return _arr
-    #             _data = list(map(lambda issue_model:remove_index(issue_model,idx)[0:-1] , data_sources))
-    #             _targets = list(map(lambda issue_model: issue_model[-1], data_sources))
-    #             _x_train, _x_test, _y_train, _y_test = train_test_split(_data, _targets, test_size=0.3, random_state=10)
-    #             _grid_search = get_grid_search(_x_train,_y_train)
-    #             _best_train_score = _grid_search.best_score_
-    #             _best_test_score = _grid_search.score(_x_test, _y_test)
-    #             _best_params = _grid_search.best_params_
-    #             # 数据持久化到csv
-    #             writer.writerow([idx,prop,_best_train_score,_best_test_score,json.dumps(_best_params)])   
-    #     except:
-    #         pass
-    #     finally:
-    #         csv_f.close()
 
-    # def draw_each_prop_effect():
-    #     csv_reader = csv.reader(open(".log/watch_each_prop_effect.csv"))
-    #     render_list = []
-    #     for idx,line in enumerate(csv_reader):
-    #         if idx == 0:
-    #             continue
-    #         render_list.append(line[1:4])
-    #     name_list = list(map(lambda _list: _list[0], render_list))
-    #     train_score_list = list(map(lambda _list: float(_list[1]), render_list))
-    #     test_score_list = list(map(lambda _list: float(_list[2]), render_list))
-    #     x = np.arange(len(name_list))
-    #     bar_width=0.3
-    #     plt.rcParams['font.sans-serif']=['SimHei']
-    #     plt.bar(x, train_score_list,bar_width,color='salmon', label='train_score')
-    #     plt.bar(x + bar_width, test_score_list,bar_width,color='orchid', label='test_score')
-    #     plt.legend()
-    #     plt.axhline(y=0.7323509232492198, color='salmon', linestyle='--')
-    #     plt.axhline(y=0.719573497604322, color='orchid', linestyle='--')
-    #     plt.xticks(x+bar_width/2,name_list)
-    #     plt.show()
-        
-        
-    # watch_each_prop_effect()
-    # draw_each_prop_effect()
+def sklearn_random_forest():
+
+    logger("start building model : random forest ")
+    random_forest_id = model_id
+    # _validation_curve
+    _max_depth = [5,8,None]
+    _min_samples_split = [2,14]
+    _min_samples_leaf = [9,10]
+    _random_state = [3,10]
+    _max_features = [5,7]
+    _n_estimators = [70,150]
+
+
+    # _n_estimators = [50,100,150,200,500,1000]
+    # _max_depth = [*range(5, 12, 3), None]
+    # _min_samples_split = range(2, 11, 3)
+    # _min_samples_leaf = range(10, 40, 5)
+    # _random_state = [*range(1, 11, 3), None]
+    # _max_features = ['auto', 'sqrt', 'log2', *range(1, len(train_prop_list) - 1, 4)]
+
+    time_start = None
+    time_end = None
+
+    def get_grid_search(x_train,y_train):
+        try:
+            nonlocal time_start, time_end,_max_depth, _min_samples_split, _min_samples_leaf, _random_state, _max_features
+            logger('trying to get the grid search...')
+            # 指定样本权重
+            t_grid_search = GridSearchCV(estimator=RandomForestClassifier(criterion='gini',class_weight='balanced'), param_grid={
+                'max_depth': _max_depth,
+                'min_samples_split': _min_samples_split,
+                'min_samples_leaf': _min_samples_leaf,
+                'random_state': _random_state,
+                'max_features': _max_features,
+                'n_estimators':_n_estimators
+            }, scoring='roc_auc', verbose=2, return_train_score=True,n_jobs=-1)
+            time_start = time.time()
+            t_grid_search.fit(x_train, y_train)
+            time_end = time.time()
+
+            # TODO: 训练过程进度展示
+
+            return t_grid_search
+
+        except Exception as e:
+            logger('some error happened when get the grid search,error: {}'.format(str(e)))
+            exit()
+
+    def upload_best_model(_grid_search):
+        try:
+            logger('trying to upload the random forest model to cloud')
+            score_model = 'model/{}.pkl'.format(random_forest_id)
+            model = pickle.dumps(_grid_search.best_estimator_)
+            pickle.dump(_grid_search,open('models/{}.pkl'.format(random_forest_id),'wb'))
+            (ret, info) = upload_data_to_bucket(score_model, model)
+            if info.status_code == 200:
+                logger('upload the random forest model to cloud successfully!')
+                update_model_config({
+                    "modelId": model_id,
+                    "modelPklUrl": '{}/{}'.format(qiniu_bucket_url, score_model)
+                }, local=not is_prod_env)
+            else:
+                logger('fail to upload the random forest to cloud,ret: {}, info: {}'.format(
+                    ret, info))
+        except Exception as e:
+            logger('some error happened when score model to the cloud,error: {}'.format(str(e)))
+
+    def upload_score_config(_grid_search):
+        global x_test, y_test
+        nonlocal time_start, time_end
+        _grid_results = _grid_search.cv_results_
+        _best_train_score = _grid_search.best_score_
+        _best_test_score = _grid_search.score(x_test, y_test)
+        _best_params = _grid_search.best_params_
+        try:
+            train_const_time = format(time_end - time_start, '.2f')
+            logger('get best score successfully,time cost: {} s'.format(train_const_time))
+            logger('best score in train: {} '
+                   'best score in test: {}  '
+                   'config: {}'.format(_best_train_score, _best_test_score, _best_params))
+            logger('trying to upload the random forest score config to cloud')
+            score_log = 'score/{}.config'.format(random_forest_id)
+            (ret, info) = upload_data_to_bucket(score_log, json.dumps({
+                "best_test_score": _best_test_score,
+                "best_train_score": _best_train_score,
+                "best_params": _best_params,
+                "train_cost_time": train_const_time + 's',
+                "train_config_num": _grid_results['mean_train_score'].size
+            }))
+            if info.status_code == 200:
+                logger('upload the score config to cloud successfully!')
+                update_model_config({
+                    "modelId": model_id,
+                    "modelConfigUrl": '{}/{}'.format(qiniu_bucket_url, score_log)
+                }, local=not is_prod_env)
+            else:
+                logger('fail to upload the score config to cloud,ret: {}, info: {}'.format(
+                    ret, info))
+        except Exception as e:
+            logger('some error happened when upload score config to the cloud,error: {}'.format(str(e)))
+
+    grid_search = get_grid_search(x_train,y_train)
+    upload_best_model(grid_search)
+    upload_score_config(grid_search)
 
 
 logger('======== model engine : supervised ========')
-if model_id is not None and model_framework == 'sklearn' and model_program == 'decision_tree' or not is_prod_env:
+if model_id is not None and model_framework == 'sklearn' and model_program == 'decision_tree':
     sklearn_decision_tree()
+    update_model_config({
+        "modelId": model_id,
+        "modelTraining": False
+    }, local=not is_prod_env)
+elif model_id is not None and model_framework == 'sklearn' and model_program == 'random_forest':
+    sklearn_random_forest()
     update_model_config({
         "modelId": model_id,
         "modelTraining": False

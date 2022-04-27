@@ -29,3 +29,6 @@ model/**/__pycache__
 **/.qiniu*.json
 **/.supervised_graph
 model/datasets
+model/__test
+model/models
+model/model_bak

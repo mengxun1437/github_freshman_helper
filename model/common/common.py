@@ -4,6 +4,7 @@ issue_model_column_list = ['titleLength', 'bodyLength', 'commentsNum','issueTitl
                            'starNum',
                            'openIssuesNum', 'hasOrganization', 'isGoodForFreshman']
 train_prop_list = ['titleLength', 'bodyLength', 'commentsNum','titleReadability','bodyReadability',
+                           'titleTopicProbability','bodyTopicProbability',
                            'titleTopic','bodyTopic',
                            'commentsTotalLength',
                            'participantsNum', 'assigneesNum', 'creatorCreated', 'creatorFollowers',

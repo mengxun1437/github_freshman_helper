@@ -317,7 +317,7 @@ export class IssueService {
   // 批量获取issueInfo缺失的部分
   async fixIssueInfoLost(): Promise<any> {
     const infoLostList = await this.issueRepository.query(
-      `select * from issue where issueId in (select issueId from issue_model) and issueBody = ''`,
+      `select * from issue where issueBody = '' limit 1000`,
     );
     console.log('lost length:', infoLostList.length);
     const octokitRequest = new OctokitRequest({ sleep: 350 });
