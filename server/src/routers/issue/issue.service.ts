@@ -317,13 +317,13 @@ export class IssueService {
   // 批量获取issueInfo缺失的部分
   async fixIssueInfoLost(): Promise<any> {
     const infoLostList = await this.issueRepository.query(
-      `select * from issue where issueBody = '' limit 1000`,
+      `select * from issue where issueBody = ''`,
     );
     console.log('lost length:', infoLostList.length);
     const octokitRequest = new OctokitRequest({ sleep: 350 });
     for (let i = 0; i < infoLostList.length; i++) {
+      const issue = infoLostList[i];
       try {
-        const issue = infoLostList[i];
         console.log(`\ntrying to fix lost index: ${i} id:${issue.issueId}`);
         const resp = await octokitRequest.get(
           formatGithubApi(issue.issueApiUrl),
@@ -338,6 +338,10 @@ export class IssueService {
           });
         }
       } catch (e) {
+        await this.issueRepository.save({
+          issueId: issue.issueId,
+          issueBody: '-',
+        });
         console.log(e.message);
       }
     }

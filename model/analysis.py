@@ -6,16 +6,17 @@ from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.feature_selection import RFE
+from sklearn.feature_selection import SelectKBest,f_classif
 from sklearn.model_selection  import validation_curve,train_test_split
 from sklearn.tree import DecisionTreeClassifier
-from common.common import train_prop_list
+from common.common import train_prop_list,_train_prop_list
 from dataset import get_data_sources
 
 if not os.path.exists('models/analysis'):
     os.mkdir('models/analysis')
 
 data_sources = get_data_sources()
+
 data = list(map(lambda issue_model: issue_model[0:-1], data_sources))
 targets = list(map(lambda issue_model: issue_model[-1], data_sources))
 x_train, x_test, y_train, y_test = train_test_split(data, targets, test_size=0.3, random_state=10)
@@ -76,37 +77,40 @@ def analysis_rf(name):
     draw_train_process(clf=clf,type='RF')
 
 
-# analysis_dt('decision_tree_vc')
+# analysis_dt('decision_tree')
 analysis_rf('random_forest')
 
 # 特征选择
-def feature_select(type):
+def feature_select():
     # 从17个中选13个用于训练
-    clf = None
-    if type == 'DT':
-        clf = DecisionTreeClassifier(criterion='gini',class_weight='balanced')
-    elif type == 'RF':
-        clf = RandomForestClassifier(criterion='gini',class_weight='balanced')
-    rfe = RFE(estimator=clf, n_features_to_select=13)
-    x_t = rfe.fit_transform(data,targets)
-    x_train_t, x_test_t, y_train_t, y_test_t = train_test_split(x_t, targets, test_size=0.3, random_state=10)
-    rfe.fit(x_train_t, y_train_t)                                                                     
-    print('{} rfe score:'.format(type),rfe.score(x_test_t, y_test_t))
-    print('{} feature select:'.format(type),rfe.support_,rfe.ranking_,rfe.get_params())
+    sel = SelectKBest(f_classif, k=13)
+    sel.fit_transform(data,targets)
+    res = sel.get_support()
+    for idx,prop in enumerate(_train_prop_list[0:-1]):
+        if not res[idx]:
+            print(prop)
 
-# feature_select('DT')
-# feature_select('RF')
+# feature_select()
+'''
+result
+
+titleReadability
+titleTopicProbability
+titleTopic
+assigneesNum
+'''
+
+
 
 
 # 使用validation curve观察每一种情况下的因素影响
-# 每个特征选取2个最优的，重新跑一次模型计算
-# 确定调参范围
+# 每个特征选取几个较优的，确定调参范围
 def _validation_curve(type):
     params_map = {
         'max_depth' : range(5, 12),
         'min_samples_split' : range(2, len(train_prop_list)),
         'min_samples_leaf' : range(1, len(train_prop_list)),
-        'random_state' : range(1, 11),
+        'random_state' : range(1, len(train_prop_list)),
         'max_features' : range(1, len(train_prop_list))
     }
 
@@ -140,20 +144,29 @@ def _validation_curve(type):
         plt.savefig("models/analysis/{}_validation_curve_param_{}".format(type,param))
         plt.show()
 
-# 'max_depth' : [8,10],
-# 'min_samples_split' : [4,12],
-# 'min_samples_leaf' : [2,9],
-# 'random_state' : [2,10],
-# 'max_features' : [9,13]
-# _validation_curve('DT')
 
-# 'max_depth' : [5,8],
-# 'min_samples_split' : [2,14],
-# 'min_samples_leaf' : [9,10],
-# 'random_state' : [3,10],
-# 'max_features' : [5,7],
-# 'n_estimators' : [70,150]
+# _validation_curve('DT')
+'''
+result
+
+'max_depth' : [8,10],
+'min_samples_split' : [4,12],
+'min_samples_leaf' : [2,9],
+'random_state' : [2,10],
+'max_features' : [9,13]
+'''
+
 # _validation_curve('RF')
+'''
+result
+
+'max_depth' : [5,8],
+'min_samples_split' : [2,14],
+'min_samples_leaf' : [9,10],
+'random_state' : [3,10],
+'max_features' : [5,7],
+'n_estimators' : [70,150]
+'''
 
 
 

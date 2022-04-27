@@ -1,5 +1,6 @@
 # -*- coding: UTF-8 -*-
 import os
+import time
 import numpy as np
 from common.common import qiniu_bucket_url, train_prop_list, gfh_prod_server_url, gfh_local_server_url
 from common.utils import logger,dict_list_2_list
@@ -68,13 +69,13 @@ try:
     predict_list = dict_list_2_list(train_prop_list[0:-1],list(map(lambda issue:handle_issue(issue),issue_list)))
 
     # 从远端获取模型
-    model_url = '{}/model/{}.pkl'.format(qiniu_bucket_url, model_id)
+    model_url = '{}/model/{}.pkl?time={}'.format(qiniu_bucket_url, model_id,time.time())
 
     resp = requests.get(model_url)
     if resp.status_code == 200:
         clf = pickle.loads(resp.content)
         predict_result = clf.predict(predict_list)
-        print(predict_result)
+        print("predict_result", predict_result)
         request_url = '{}/model/updateModelPredict'.format(
             gfh_prod_server_url if is_prod_env else gfh_local_server_url)
         for idx,result in enumerate(predict_result):

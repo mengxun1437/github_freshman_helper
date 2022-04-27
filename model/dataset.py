@@ -6,7 +6,7 @@ import os
 from gensim import corpora
 from gensim.models import LdaModel,CoherenceModel
 from common.utils import dict_list_2_list,logger
-from common.common import train_prop_list
+from common.common import train_prop_list,_train_prop_list
 from common.get_remote import get_issue_models_list
 import textstat
 import nltk
@@ -135,7 +135,7 @@ def lda_model():
         logger('write lda_body_model to file')
         lda_body.save(lda_body_path)
 
-def get_data_sources():
+def get_data_sources(props = train_prop_list):
     global issue_titles,issue_bodies
     datasets_path = 'datasets/data.json'
 
@@ -143,7 +143,7 @@ def get_data_sources():
         data_f = open(datasets_path)
         _data_sources = json.load(data_f)
         logger('getted {} data from file data.json'.format(len(_data_sources)))
-        data_sources = dict_list_2_list(train_prop_list,_data_sources)       
+        data_sources = dict_list_2_list(props,_data_sources)       
     else:
         dict_list = get_issue_models_list()
 
@@ -183,7 +183,7 @@ def get_data_sources():
             dict_list[idx]['bodyTopicProbability'] = np.float64(body_topic_probability)
         
 
-        data_sources = dict_list_2_list(train_prop_list,dict_list)
+        data_sources = dict_list_2_list(_train_prop_list,dict_list)
 
         # 将数据存储到文件，如果有文件，下次从文件读取，减少网络消耗和重复计算 
         if not os.path.exists('datasets/data.json'):

@@ -52,8 +52,8 @@ except Exception as e:
 log_file = "{}/{}.log".format('.log', model_id)
 if not os.path.exists('.log'):
     os.mkdir('.log')
-log_f = open(log_file, "w+")
-sys.stdout = log_f
+# log_f = open(log_file, "w+")
+# sys.stdout = log_f
 
 # 打印出命令行参数
 logger(
@@ -106,12 +106,6 @@ def sklearn_decision_tree():
     _min_samples_leaf = [2,9]
     _random_state = [2,10]
     _max_features = [9,13]
-
-    # _max_depth = [*range(5, 12, 3), None]
-    # _min_samples_split = range(2, 11, 3)
-    # _min_samples_leaf = range(10, 40, 5)
-    # _random_state = [*range(1, 11, 3), None]
-    # _max_features = ['auto', 'sqrt', 'log2', *range(1, len(train_prop_list) - 1, 4)]
 
     time_start = None
     time_end = None
@@ -246,19 +240,11 @@ def sklearn_random_forest():
     random_forest_id = model_id
     # _validation_curve
     _max_depth = [5,8,None]
-    _min_samples_split = [2,14]
-    _min_samples_leaf = [9,10]
+    _min_samples_split = [2,12]
+    _min_samples_leaf = [2,10]
     _random_state = [3,10]
-    _max_features = [5,7]
-    _n_estimators = [70,150]
-
-
-    # _n_estimators = [50,100,150,200,500,1000]
-    # _max_depth = [*range(5, 12, 3), None]
-    # _min_samples_split = range(2, 11, 3)
-    # _min_samples_leaf = range(10, 40, 5)
-    # _random_state = [*range(1, 11, 3), None]
-    # _max_features = ['auto', 'sqrt', 'log2', *range(1, len(train_prop_list) - 1, 4)]
+    _max_features = ['auto','sqrt','log2',5,7]
+    _n_estimators = [50,100,150,200]
 
     time_start = None
     time_end = None
