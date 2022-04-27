@@ -20,6 +20,8 @@ config.yaml
 server/src/common/constants.ts
 **/graph
 
+server/**/datasets
+
 # model
 model/config
 model/**/*.pyc

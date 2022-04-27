@@ -12,7 +12,6 @@ from sklearn.tree import DecisionTreeClassifier
 from common.common import train_prop_list
 from dataset import get_data_sources
 
-
 if not os.path.exists('models/analysis'):
     os.mkdir('models/analysis')
 
@@ -20,7 +19,6 @@ data_sources = get_data_sources()
 data = list(map(lambda issue_model: issue_model[0:-1], data_sources))
 targets = list(map(lambda issue_model: issue_model[-1], data_sources))
 x_train, x_test, y_train, y_test = train_test_split(data, targets, test_size=0.3, random_state=10)
-
 
 def get_model(file_path):
     clf = pickle.load(open(file_path,'rb'))
@@ -79,7 +77,7 @@ def analysis_rf(name):
 
 
 # analysis_dt('decision_tree_vc')
-# analysis_rf('random_forest_vc')
+analysis_rf('random_forest')
 
 # 特征选择
 def feature_select(type):
@@ -96,8 +94,8 @@ def feature_select(type):
     print('{} rfe score:'.format(type),rfe.score(x_test_t, y_test_t))
     print('{} feature select:'.format(type),rfe.support_,rfe.ranking_,rfe.get_params())
 
-feature_select('DT')
-feature_select('RF')
+# feature_select('DT')
+# feature_select('RF')
 
 
 # 使用validation curve观察每一种情况下的因素影响

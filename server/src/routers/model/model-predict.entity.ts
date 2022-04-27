@@ -3,13 +3,10 @@ import { Column, Entity, PrimaryColumn } from 'typeorm';
 @Entity()
 export class ModelPredict {
   @PrimaryColumn()
-  bid: string;
+  issueId: string;
 
   @Column()
   modelId: string;
-
-  @Column({ nullable: true })
-  issueId: string;
 
   @Column()
   isGoodForFreshman: boolean;

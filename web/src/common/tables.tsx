@@ -39,6 +39,10 @@ const ModelProgram: CustomTagMap = {
     color: "rgb(135 208 104)",
     desc: "决策树",
   },
+  random_forest: {
+    color: "#8250df",
+    desc: "随机森林",
+  }
 };
 
 const IssueStateType: CustomTagMap = {

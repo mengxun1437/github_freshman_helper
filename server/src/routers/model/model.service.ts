@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { exec, execSync } from 'child_process';
 import { randomUUID } from 'crypto';
 import { PROD_ENV } from '../../common/index';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { Model } from './model.entity';
 import { QINIU_BUCKET_URL } from '../../common/constants';
 import { ModelPredict } from './model-predict.entity';
@@ -15,6 +15,7 @@ import {
   Pagination,
   paginate,
 } from 'nestjs-typeorm-paginate';
+import { chunk } from 'lodash';
 
 /**
  // TODO: 后续可补充，暂时考虑一种算法
@@ -194,53 +195,20 @@ export class ModelService implements OnModuleDestroy {
     await this.modelPredictRepository.save(config);
   }
 
-  async startPredict({ issueId, modelId, issueModelInfo }: any) {
-    const bid = randomUUID();
+  async startPredict({ issues, modelId }: any) {
     try {
-      console.log({
-        ...issueModelInfo,
-        issueId,
-      })
       const execCommand = `python ../model/predict.py -i '${new Buffer(
-        JSON.stringify({
-          ...issueModelInfo,
-          issueId,
-        }),
-      ).toString('base64')}' -m ${modelId} -b ${bid} ${PROD_ENV ? '' : '-l'}`;
+        JSON.stringify(
+          issues.map((issue: any) => ({
+            ...issue,
+            // 处理特殊类型
+            hasOrganization: issue?.hasOrganization ? 1 : 0,
+            creatorCreated: Number(issue?.creatorCreated),
+          })),
+        ),
+      ).toString('base64')}' -m ${modelId} ${PROD_ENV ? '' : '-l'}`;
       console.log(execCommand);
       exec(execCommand);
-      // 每隔3秒轮询一次，如果轮询总时长超过30秒，则认为预测失败
-      const startTime = new Date().getTime();
-      let predict = undefined;
-      const intervalReq = setInterval(async () => {
-        predict = await this.modelPredictRepository.findOne({
-          bid,
-        });
-      }, 3000);
-      await new Promise((res) => {
-        const intervalWatch = setInterval(() => {
-          if (predict || new Date().getTime() - startTime > 30 * 1000) {
-            clearInterval(intervalReq);
-            clearInterval(intervalWatch);
-            res(1);
-          }
-        }, 3000);
-      });
-
-      if (predict) {
-        await this.issueRepository.save({
-          issueId,
-          isGoodTag: predict?.isGoodForFreshman,
-        });
-        await this.modelInfoRepository.save({
-          issueId,
-          isGoodForFreshman: predict?.isGoodForFreshman,
-        });
-      }
-
-      return predict || {};
-    } catch (e) {
-      return {};
-    }
+    } catch {}
   }
 }

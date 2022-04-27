@@ -351,27 +351,18 @@ export class IssueModelService {
     const issues = await this.issueModelInfoRepository.find({
       where: {
         isGoodForFreshman: null,
-        issueBody:Not('')
+        issueBody: Not(''),
       },
     });
     logger.log(`startBatchPredict get ${issues.length} data`);
-    // 每10秒otctikts.length组
-    const _chunk = chunk(issues, 10);
+    const _chunk = chunk(issues, 5);
     for (let i = 0; i < _chunk.length; i++) {
-      setTimeout(() => {
-        const _curChunk = _chunk[i];
-        _curChunk.forEach(async (issueModel, index) => {
-          if (issueModel.issueId && issueModel.titleLength) {
-            await this.modelService.startPredict({
-              issueId: issueModel.issueId,
-              modelId: '54fd56bf-f435-407f-9f40-31a64aa2dd77',
-              issueModelInfo: issueModel,
-            });
-          } else {
-            logger.log(`${issueModel.issueId}\n`);
-          }
-        });
-      }, i * 20000);
+      const _curChunk = _chunk[i];
+      await sleep(3000)
+      await this.modelService.startPredict({
+        modelId: 'random_forest',
+        issues: _curChunk,
+      });
     }
   }
 }

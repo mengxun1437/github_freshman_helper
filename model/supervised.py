@@ -52,8 +52,8 @@ except Exception as e:
 log_file = "{}/{}.log".format('.log', model_id)
 if not os.path.exists('.log'):
     os.mkdir('.log')
-# log_f = open(log_file, "w+")
-# sys.stdout = log_f
+log_f = open(log_file, "w+")
+sys.stdout = log_f
 
 # 打印出命令行参数
 logger(
@@ -144,7 +144,7 @@ def sklearn_decision_tree():
         try:
             logger('trying to upload the decision model to cloud')
             score_model = 'model/{}.pkl'.format(decision_tree_id)
-            model = pickle.dumps(_grid_search.best_estimator_)
+            model = pickle.dumps(_grid_search)
             pickle.dump(_grid_search,open('models/{}.pkl'.format(decision_tree_id),'wb'))
             (ret, info) = upload_data_to_bucket(score_model, model)
             if info.status_code == 200:
@@ -292,7 +292,7 @@ def sklearn_random_forest():
         try:
             logger('trying to upload the random forest model to cloud')
             score_model = 'model/{}.pkl'.format(random_forest_id)
-            model = pickle.dumps(_grid_search.best_estimator_)
+            model = pickle.dumps(_grid_search)
             pickle.dump(_grid_search,open('models/{}.pkl'.format(random_forest_id),'wb'))
             (ret, info) = upload_data_to_bucket(score_model, model)
             if info.status_code == 200:
