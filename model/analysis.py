@@ -78,7 +78,7 @@ def analysis_rf(name):
 
 
 # analysis_dt('decision_tree')
-analysis_rf('random_forest')
+# analysis_rf('random_forest')
 
 # 特征选择
 def feature_select():

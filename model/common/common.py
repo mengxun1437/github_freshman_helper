@@ -1,7 +1,7 @@
 from sklearn.model_selection import train_test_split
 
 
-issue_model_column_list = ['titleLength', 'bodyLength', 'commentsNum','issueTitle','issueBody',
+issue_model_column_list = ['issueId','titleLength', 'bodyLength', 'commentsNum','issueTitle','issueBody',
                            'commentsTotalLength',
                            'participantsNum', 'assigneesNum', 'creatorCreated', 'creatorFollowers',
                            'starNum',

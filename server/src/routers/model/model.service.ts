@@ -197,7 +197,7 @@ export class ModelService implements OnModuleDestroy {
 
   async startPredict({ issues, modelId }: any) {
     try {
-      const execCommand = `python ../model/predict.py -i '${new Buffer(
+      const execCommand = `python ../model/predict_remote.py -i '${new Buffer(
         JSON.stringify(
           issues.map((issue: any) => ({
             ...issue,
