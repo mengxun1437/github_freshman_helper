@@ -1,20 +1,26 @@
 
 # 对模型作简单的分析
+import json
 import os
 import pickle
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.feature_selection import SelectKBest,f_classif
+from sklearn.feature_selection import mutual_info_classif 
 from sklearn.model_selection  import validation_curve,train_test_split
 from sklearn.tree import DecisionTreeClassifier
 from common.common import train_prop_list,_train_prop_list
 from dataset import get_data_sources
+from gensim.models import LdaModel
+from sklearn.metrics import roc_curve,roc_auc_score
 
 if not os.path.exists('models/analysis'):
     os.mkdir('models/analysis')
 
+
+
+# 指定prop为_train_prop_list可以获取原始17个维度的数据
 data_sources = get_data_sources()
 
 data = list(map(lambda issue_model: issue_model[0:-1], data_sources))
@@ -33,6 +39,8 @@ def print_clf_info(clf,type = ''):
 # 重要特征可视化
 def draw_importances(model,type=''):
     importances = model.feature_importances_
+    for idx,prop in enumerate(train_prop_list[0:-1]):
+        print('prop: {} score: {}'.format(prop,importances[idx]))
     model_importances = pd.Series(importances, index=train_prop_list[0:-1])
     fig, ax = plt.subplots()
     model_importances.plot.bar(ax=ax)
@@ -41,6 +49,7 @@ def draw_importances(model,type=''):
     fig.tight_layout()
     plt.savefig('models/analysis/{}_importances'.format(type))
     plt.show()
+
 
 # 训练过程可视化
 def draw_train_process(clf,type):
@@ -78,17 +87,27 @@ def analysis_rf(name):
 
 
 # analysis_dt('decision_tree')
-# analysis_rf('random_forest')
+analysis_rf('random_forest')
 
 # 特征选择
 def feature_select():
-    # 从17个中选13个用于训练
-    sel = SelectKBest(f_classif, k=13)
-    sel.fit_transform(data,targets)
-    res = sel.get_support()
+    # sel = SelectKBest(f_classif, k=13)
+    # sel.fit_transform(data,targets)
+    # scores = sel.scores_
+    # print(scores)
+    # model_scores = pd.Series(scores, index=_train_prop_list[0:-1])
+    scores = mutual_info_classif(data,targets,discrete_features='auto',n_neighbors=3,copy=False,random_state=3)
     for idx,prop in enumerate(_train_prop_list[0:-1]):
-        if not res[idx]:
-            print(prop)
+        print('prop: {} score: {}'.format(prop,scores[idx]))
+    model_scores = pd.Series(scores, index=_train_prop_list[0:-1])
+    fig, ax = plt.subplots()
+    model_scores.plot.bar(ax=ax)
+    ax.set_title("Feature scores")
+    ax.set_ylabel("score")
+    fig.tight_layout()
+    plt.savefig('models/analysis/feature_score.png')
+    plt.show()
+    
 
 # feature_select()
 '''
@@ -107,7 +126,7 @@ assigneesNum
 # 每个特征选取几个较优的，确定调参范围
 def _validation_curve(type):
     params_map = {
-        'max_depth' : range(5, 12),
+        'max_depth' : range(2, len(train_prop_list)),
         'min_samples_split' : range(2, len(train_prop_list)),
         'min_samples_leaf' : range(1, len(train_prop_list)),
         'random_state' : range(1, len(train_prop_list)),
@@ -119,7 +138,7 @@ def _validation_curve(type):
         clf = DecisionTreeClassifier(criterion='gini',class_weight='balanced')
     elif type == 'RF':
         clf = RandomForestClassifier(criterion='gini',class_weight='balanced')
-        params_map['n_estimators'] = range(50,1000,10)
+        params_map['n_estimators'] = range(100,1100,50)
 
     for param in params_map:
         params = params_map[param]
@@ -168,6 +187,72 @@ result
 'n_estimators' : [70,150]
 '''
 
+
+# 分析LDA主题模型
+def analysis_lda():
+    lda_title_path = 'datasets/lda_title.model'
+    lda_body_path = 'datasets/lda_body.model'
+    if os.path.exists(lda_title_path):
+        lda_title = LdaModel.load(lda_title_path)
+        
+    if os.path.exists(lda_body_path):
+        lda_body = LdaModel.load(lda_body_path) 
+    print(lda_title.print_topics())
+    print(lda_body.print_topics())
+# analysis_lda()
+
+# 绘制data.json中lda相关的数据
+def draw_data_json_lda():
+    data = json.load(open('datasets/data.json','r'))
+    # data_true = list(filter(lambda x:x['isGoodForFreshman'] == 1,data))
+    # data_false = list(filter(lambda x:x['isGoodForFreshman'] == 0,data))
+    titles = list(map(lambda issue:issue['titleTopic'],data))
+    bodies = list(map(lambda issue:issue['bodyTopic'],data))
+    def generate_sizes(input_arr):
+        arr = [0]*10
+        for i in input_arr:
+            arr[i] += 1
+        return arr
+    title_sizes = generate_sizes(titles) #每块值
+    body_sizes = generate_sizes(bodies)
+    def draw(arr,type=''):
+        labels = range(0,10) #定义标签
+        
+        plt.pie(arr,
+                        labels=labels,
+                        startangle =90,
+                        pctdistance = 0.6) 
+        plt.axis('equal')
+        plt.savefig('models/analysis/draw_data_json_lda_{}.png'.format(type))
+        plt.show()
+    draw(title_sizes,type='title')
+    draw(body_sizes,type='body')
+
+
+# draw_data_json_lda()
+
+# 绘制roc_auc曲线
+def draw_roc_auc():
+    gcv,clf = get_model('models/random_forest.pkl')
+    y_pred_pro = clf.predict_proba(x_test)
+    y_scores = pd.DataFrame(y_pred_pro, columns=clf.classes_.tolist())[1].values
+    auc_value = roc_auc_score(y_test, y_scores)
+    fpr, tpr, thresholds = roc_curve(y_test, y_scores, pos_label=1.0)
+    
+    plt.plot(fpr, tpr, color='darkorange', lw=2, label='ROC curve (area = %0.3f)' % auc_value)
+    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC Curve')
+    plt.legend(loc="lower right")
+    plt.savefig('models/analysis/RF_draw_roc_auc.png')
+    plt.show()
+    
+
+
+# draw_roc_auc()
 
 
 # 去掉其中的一个字段，探究其对得分的影响

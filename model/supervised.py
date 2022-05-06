@@ -239,12 +239,12 @@ def sklearn_random_forest():
     logger("start building model : random forest ")
     random_forest_id = model_id
     # _validation_curve
-    _max_depth = [5,8,None]
-    _min_samples_split = [2,12]
+    _max_depth = [None,8,5]
+    _min_samples_split = [2,6]
     _min_samples_leaf = [2,10]
-    _random_state = [3,10]
+    _random_state = [4,10]
     _max_features = ['auto','sqrt','log2',5,7]
-    _n_estimators = [50,100,150,200]
+    _n_estimators = [200,550]
 
     time_start = None
     time_end = None
@@ -261,7 +261,7 @@ def sklearn_random_forest():
                 'random_state': _random_state,
                 'max_features': _max_features,
                 'n_estimators':_n_estimators
-            }, scoring='roc_auc', verbose=2, return_train_score=True,n_jobs=-1)
+            }, scoring='roc_auc', verbose=2, return_train_score=True,cv=10,n_jobs=-1)
             time_start = time.time()
             t_grid_search.fit(x_train, y_train)
             time_end = time.time()

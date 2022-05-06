@@ -147,7 +147,7 @@ def get_data_sources(props = train_prop_list):
     else:
         dict_list = get_issue_models_list()
 
-        # 处理title 和 issueBody =>  文本可读性 + 主题数
+        # 处理title 和 issueBody =>  文本可读性 + 主题
         # textstat.flesch_reading_ease
         issue_titles = []
         issue_bodies = []
@@ -196,6 +196,7 @@ def get_data_sources(props = train_prop_list):
 
 # get_data_sources()
 # def test_lda():
+#     lda_model()
 #     dictionary_title = corpora.Dictionary(issue_titles)
 #     for idx,issue_title in enumerate(issue_titles):
 #         bow_title = lda_title.id2word.doc2bow(issue_title)
