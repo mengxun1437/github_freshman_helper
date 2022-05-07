@@ -14,6 +14,10 @@ from common.common import train_prop_list,_train_prop_list
 from dataset import get_data_sources
 from gensim.models import LdaModel
 from sklearn.metrics import roc_curve,roc_auc_score
+from gensim import corpora
+import wordcloud
+import copy
+from sklearn.svm import SVC
 
 if not os.path.exists('models/analysis'):
     os.mkdir('models/analysis')
@@ -87,7 +91,7 @@ def analysis_rf(name):
 
 
 # analysis_dt('decision_tree')
-analysis_rf('random_forest')
+# analysis_rf('random_forest')
 
 # 特征选择
 def feature_select():
@@ -125,20 +129,35 @@ assigneesNum
 # 使用validation curve观察每一种情况下的因素影响
 # 每个特征选取几个较优的，确定调参范围
 def _validation_curve(type):
-    params_map = {
-        'max_depth' : range(2, len(train_prop_list)),
-        'min_samples_split' : range(2, len(train_prop_list)),
-        'min_samples_leaf' : range(1, len(train_prop_list)),
-        'random_state' : range(1, len(train_prop_list)),
-        'max_features' : range(1, len(train_prop_list))
-    }
-
+    
     clf = None
+    params_map = {}
     if type == 'DT':
+        params_map = {
+            'max_depth' : range(2, len(train_prop_list)),
+            'min_samples_split' : range(2, len(train_prop_list)),
+            'min_samples_leaf' : range(1, len(train_prop_list)),
+            'random_state' : range(1, len(train_prop_list)),
+            'max_features' : range(1, len(train_prop_list))
+        }
         clf = DecisionTreeClassifier(criterion='gini',class_weight='balanced')
     elif type == 'RF':
         clf = RandomForestClassifier(criterion='gini',class_weight='balanced')
+        params_map = {
+            'max_depth' : range(2, len(train_prop_list)),
+            'min_samples_split' : range(2, len(train_prop_list)),
+            'min_samples_leaf' : range(1, len(train_prop_list)),
+            'random_state' : range(1, len(train_prop_list)),
+            'max_features' : range(1, len(train_prop_list))
+        }
         params_map['n_estimators'] = range(100,1100,50)
+    elif type == 'SVM':
+        clf = SVC(class_weight='balanced')
+        params_map = {
+            'C':[1,2,4,8],
+            'gamma':list(map(lambda x: 1/x,range(2,len(train_prop_list)))),
+            'random_state':range(1,len(train_prop_list))
+        }
 
     for param in params_map:
         params = params_map[param]
@@ -186,6 +205,8 @@ result
 'max_features' : [5,7],
 'n_estimators' : [70,150]
 '''
+
+_validation_curve('SVM')
 
 
 # 分析LDA主题模型
@@ -251,9 +272,54 @@ def draw_roc_auc():
     plt.show()
     
 
-
 # draw_roc_auc()
 
+# 分析lda 词汇表
+def analysis_lda_voc():
+    dict_title = corpora.Dictionary.load('datasets/dictionary_title.dict')
+    dict_body = corpora.Dictionary.load('datasets/dictionary_body.dict')
+    print(len(dict_title.token2id),len(dict_body.token2id))
+    title_map = {}
+    body_map = {}
+     # for prop in _t:
+        #     if prop.isdigit():
+        #         del word_count[prop]
+    for key in dict_title.iterkeys():
+        val = dict_title.get(key)
+        if str(val).isdigit():
+            continue
+        title_map[val] = dict_title.dfs[key]
+    for key in dict_body.iterkeys():
+        val = dict_body.get(key)
+        if str(val).isdigit():
+            continue
+        body_map[val] = dict_body.dfs[key]
+    print(len(title_map),len(body_map))
+    title_map_sort = sorted(title_map.items(), key=lambda item: -item[1])
+    for i,k in enumerate(title_map_sort[:10]):
+        print(i,k)
+    print('------------------')
+    body_map_sort = sorted(body_map.items(), key=lambda item: -item[1])
+    for i,k in enumerate(body_map_sort[:10]):
+        print(i,k)
+    def wc_from_word_count(word_count, fp):
+        '''根据词频字典生成词云图'''
+        _t = copy.deepcopy(word_count)
+        wc = wordcloud.WordCloud(
+            max_words=10000,  
+            background_color="white",
+            margin=10
+        )
+        wc.generate_from_frequencies(word_count) 
+        plt.imshow(wc) 
+        plt.axis('off')
+        plt.show()
+        wc.to_file(fp)
+    wc_from_word_count(title_map,'models/analysis/dict_title_wc.png')
+    wc_from_word_count(body_map,'models/analysis/dict_body_wc.png')
+
+
+# analysis_lda_voc()
 
 # 去掉其中的一个字段，探究其对得分的影响
 # def watch_each_prop_effect():
