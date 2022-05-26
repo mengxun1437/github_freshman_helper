@@ -25,10 +25,10 @@ export class IssueModel {
   updateAt: number;
 
   // 问题本身
-  @Column({type:"text"})
+  @Column({type:"text",nullable:true})
   issueTitle:string
 
-  @Column({type:'text'})
+  @Column({type:'text',nullable:true})
   issueBody:string
 
   // title长度

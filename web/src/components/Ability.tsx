@@ -7,9 +7,23 @@ import {
   message,
   Form,
   Input,
+  Modal,
+  Select,
 } from "antd";
-import { CSSProperties, useState } from "react";
-import { START_RUN_A_MODEL, START_PREDICT, GET_A_UNLABEL_ISSUE_ID, COLLECT_FIRST_ISSUES, STORE_MODEL_INFO, START_BATCH_PREDICT, CHECK_ISSUE_STATE } from '../api/api';
+import { CSSProperties, useState, useEffect, useRef } from "react";
+import { CustomTable } from "./CustomTable";
+import {
+  START_RUN_A_MODEL,
+  START_PREDICT,
+  GET_A_UNLABEL_ISSUE_ID,
+  COLLECT_FIRST_ISSUES,
+  STORE_MODEL_INFO,
+  START_BATCH_PREDICT,
+  CHECK_ISSUE_STATE,
+  GET_ALL_MODEL_IDS,
+  START_ISSUE_PREDICT,
+} from "../api/api";
+import { issuePredictProps } from "../common/tables";
 const { Text } = Typography;
 
 const gridStyle: CSSProperties = {
@@ -24,11 +38,11 @@ enum START_NEW_MODEL_STATUS_CODE {
 }
 
 enum ABILITY {
-  COLLECT = 'COLLECT',
-  STORE = 'STORE',
+  COLLECT = "COLLECT",
+  STORE = "STORE",
   TRAIN = "TRAIN",
   PREDICT = "PREDICT",
-  CHECK_ISSUE_STATE="CHECK_ISSUE_STATE"
+  CHECK_ISSUE_STATE = "CHECK_ISSUE_STATE",
 }
 
 const cardList = [
@@ -57,11 +71,11 @@ const cardList = [
     btn: "开始分类",
   },
   {
-    key:ABILITY.CHECK_ISSUE_STATE,
-    title:'更新issue状态',
-    desc:"检查前端展示的issue状态并更新",
-    btn:"更新状态"
-  }
+    key: ABILITY.CHECK_ISSUE_STATE,
+    title: "更新issue状态",
+    desc: "检查前端展示的issue状态并更新",
+    btn: "更新状态",
+  },
 ];
 
 export const Ability = () => {
@@ -69,24 +83,30 @@ export const Ability = () => {
   const [curKey, setCurKey] = useState(ABILITY.TRAIN);
   const [predictForm] = Form.useForm();
   const [predictLoding, setPredictLoading] = useState(false);
+  const predictModelIdRef = useRef<any>("");
+  const [refresh,setRefresh] = useState(true)
+
+  useEffect(() => {
+    setRefresh(curKey === ABILITY.PREDICT && drawerVisible)
+  }, [curKey, drawerVisible]);
 
   const handleCardClick = (key: any) => {
     setCurKey(key);
     // 需要弹窗
-    if ([ABILITY.PREDICT].includes(key)) {
-      setDrawerVisible(true);
-      return;
-    }
+    // if ([ABILITY.PREDICT].includes(key)) {
+    //   setDrawerVisible(true);
+    //   return;
+    // }
     // TODO: 模型的选择需要拓展，目前展示不拓展
-    if(key === ABILITY.COLLECT){
-      COLLECT_FIRST_ISSUES().then(()=>{
-        message.info('正在收集')
-      })
-    }else if(key === ABILITY.STORE){
-      STORE_MODEL_INFO().then(()=>{
-        message.info('正在收集')
-      })
-    }else if (key === ABILITY.TRAIN) {
+    if (key === ABILITY.COLLECT) {
+      COLLECT_FIRST_ISSUES().then(() => {
+        message.info("正在收集");
+      });
+    } else if (key === ABILITY.STORE) {
+      STORE_MODEL_INFO().then(() => {
+        message.info("正在收集");
+      });
+    } else if (key === ABILITY.TRAIN) {
       START_RUN_A_MODEL()
         .then((data: any) => {
           if (data?.code === START_NEW_MODEL_STATUS_CODE.SUCCESS) {
@@ -98,51 +118,92 @@ export const Ability = () => {
         .catch((e) => {
           message.error(e?.message || "服务端错误");
         });
-    }else if(key === ABILITY.PREDICT){
-      START_BATCH_PREDICT().then(() => {
-        message.info("正在批量分类")
-      })
-    }
-    else if(key === ABILITY.CHECK_ISSUE_STATE){
+    } else if (key === ABILITY.PREDICT) {
+      // START_BATCH_PREDICT().then(() => {
+      //   message.info("正在批量分类")
+      // })
+      GET_ALL_MODEL_IDS().then((data: any) => {
+        Modal.info({
+          title: "选择分类模型",
+          direction: "ltr",
+          maskClosable: true,
+          content: (
+            <div style={{position:'relative'}}>
+              <Button
+              style={{position:'absolute',right:0,}}
+                type="link"
+                onClick={() => {
+                  setDrawerVisible(true);
+                }}
+              >
+                查看分类进度
+              </Button>
+              <Select
+                style={{ width: 200 }}
+                onChange={(val) => {
+                  predictModelIdRef.current = val;
+                }}
+                options={data.map((da: any) => ({
+                  label: da,
+                  value: da,
+                }))}
+              ></Select>
+            </div>
+          ),
+          onOk: () => {
+            if (!predictModelIdRef.current) {
+              message.info("需要选择一个模型用于分类");
+              return;
+            }
+            // 触发模型分类命令
+            START_ISSUE_PREDICT({ modelId: predictModelIdRef.current }).then(
+              () => {
+                message.success("开始分类");
+              }
+            );
+          },
+        });
+      });
+    } else if (key === ABILITY.CHECK_ISSUE_STATE) {
       CHECK_ISSUE_STATE().then(() => {
-        message.info("正在更新...")
-      })
+        message.info("正在更新...");
+      });
     }
   };
 
-  const handlePredictClick = () => {
-    setPredictLoading(true);
-    const predictFormValue = { ...predictForm.getFieldsValue() };
-    // TODO: 选择预测模型，暂时手填，后续优化
-    const issueId = predictFormValue?.issueId;
-    const modelId = predictFormValue?.modelId;
-    if (!issueId || !modelId) {
-      message.warning("参数未完整");
-      setPredictLoading(false);
-      return;
-    }
-    START_PREDICT({ issueId, modelId })
-      .then((data: any) => {
-        if (data?.bid) {
-          message.success(
-            `预测成功：${data?.isGoodForFreshman ? "" : "不"}适合新手`
-          );
-          return;
-        } else {
-          message.error("预测失败");
-        }
-      })
-      .catch((e) => {
-        message.error(`预测失败: ${e.message}`);
-      })
-      .finally(() => {
-        setPredictLoading(false);
-      });
-  };
+  // const handlePredictClick = () => {
+  //   setPredictLoading(true);
+  //   const predictFormValue = { ...predictForm.getFieldsValue() };
+  //   // TODO: 选择预测模型，暂时手填，后续优化
+  //   const issueId = predictFormValue?.issueId;
+  //   const modelId = predictFormValue?.modelId;
+  //   if (!issueId || !modelId) {
+  //     message.warning("参数未完整");
+  //     setPredictLoading(false);
+  //     return;
+  //   }
+  //   START_PREDICT({ issueId, modelId })
+  //     .then((data: any) => {
+  //       if (data?.bid) {
+  //         message.success(
+  //           `预测成功：${data?.isGoodForFreshman ? "" : "不"}适合新手`
+  //         );
+  //         return;
+  //       } else {
+  //         message.error("预测失败");
+  //       }
+  //     })
+  //     .catch((e) => {
+  //       message.error(`预测失败: ${e.message}`);
+  //     })
+  //     .finally(() => {
+  //       setPredictLoading(false);
+  //     });
+  // };
 
   return (
     <>
-      <Card bordered={false} style={{height:'100%'}}>
+      <Card bordered={false} style={{ height: "100%" }}>
         {cardList.map((card) => {
           return (
             <Card.Grid key={card.key} title={card.title} style={gridStyle}>
@@ -173,38 +234,23 @@ export const Ability = () => {
           );
         })}
       </Card>
-      {/* <Drawer
+      <Drawer
+        zIndex={1002}
         title={""}
         placement="right"
-        size="large"
+        width={1500}
         onClose={() => setDrawerVisible(false)}
         visible={drawerVisible}
         closeIcon={null}
       >
         {curKey === ABILITY.PREDICT ? (
           <>
-            <h4>预测时间可能有点久，大约10秒，请耐心等待</h4>
-            <Form
-              form={predictForm}
-              layout="horizontal"
-              name="form_in_modal"
-              initialValues={{}}
-            >
-              <Form.Item name="issueId" label="issueId">
-                <Input />
-              </Form.Item>
-              <Form.Item name="modelId" label="modelId">
-                <Input />
-              </Form.Item>
-              <Button loading={predictLoding} onClick={handlePredictClick}>
-                {predictLoding ? "预测中" : "立即预测"}
-              </Button>
-            </Form>
+            <CustomTable {...issuePredictProps()} refresh={refresh} />
           </>
         ) : (
           <></>
         )}
-      </Drawer> */}
+      </Drawer>
     </>
   );
 };

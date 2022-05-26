@@ -7,11 +7,11 @@ export class Issue {
   issueId: number;
 
   // issue的title
-  @Column({ type: 'text' })
-  issueTitle: string;
+  @Column({type:"text",nullable:true})
+  issueTitle:string
 
-  @Column({ type: 'text' })
-  issueBody: string;
+  @Column({type:'text',nullable:true})
+  issueBody:string
 
   // issue的状态
   @Column()

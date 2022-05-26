@@ -16,8 +16,8 @@ from gensim.models import LdaModel
 from sklearn.metrics import roc_curve,roc_auc_score
 from gensim import corpora
 import wordcloud
-import copy
 from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression
 
 if not os.path.exists('models/analysis'):
     os.mkdir('models/analysis')
@@ -148,15 +148,22 @@ def _validation_curve(type):
             'min_samples_split' : range(2, len(train_prop_list)),
             'min_samples_leaf' : range(1, len(train_prop_list)),
             'random_state' : range(1, len(train_prop_list)),
-            'max_features' : range(1, len(train_prop_list))
+            'max_features' : range(1, len(train_prop_list)),
+            'n_estimators': range(100,1100,50)
         }
-        params_map['n_estimators'] = range(100,1100,50)
     elif type == 'SVM':
         clf = SVC(class_weight='balanced')
         params_map = {
             'C':[1,2,4,8],
             'gamma':list(map(lambda x: 1/x,range(2,len(train_prop_list)))),
             'random_state':range(1,len(train_prop_list))
+        }
+    elif type == 'LR':
+        clf = LogisticRegression(class_weight='balanced')
+        params_map = {
+            'C':[1,2,4,8],
+            'random_state':range(1,len(train_prop_list)),
+            'max_iter':range(100,1100,100)
         }
 
     for param in params_map:
@@ -206,8 +213,8 @@ result
 'n_estimators' : [70,150]
 '''
 
-_validation_curve('SVM')
-
+# _validation_curve('SVM')
+# _validation_curve('LR')
 
 # 分析LDA主题模型
 def analysis_lda():
@@ -304,7 +311,6 @@ def analysis_lda_voc():
         print(i,k)
     def wc_from_word_count(word_count, fp):
         '''根据词频字典生成词云图'''
-        _t = copy.deepcopy(word_count)
         wc = wordcloud.WordCloud(
             max_words=10000,  
             background_color="white",
@@ -320,6 +326,24 @@ def analysis_lda_voc():
 
 
 # analysis_lda_voc()
+
+# 绘制各个模型下的准确率
+def draw_all_models_scores():
+    labels = ['RF','DT','SVM','LR']
+    train_scores = [0.7970010253462754,0.7228207642186448,0.7114846409134741,0.7114836987666384]
+    test_scores = [0.7628851208523992,0.7013207747065084,0.6923649333810925,0.6923901582608958]
+    plt.ylim(0,1)
+    x = np.arange(4)
+    total_width, n = 0.8, 3
+    width = total_width / n
+    x = x - (total_width - width) / 2
+    plt.bar(x, train_scores,  width=width, label='train_score',tick_label=labels)
+    plt.bar(x + width, test_scores, width=width, label='test_score',tick_label=labels)
+    plt.legend()
+    plt.savefig('models/analysis/draw_all_models_scores.png')
+    plt.show()   
+
+# draw_all_models_scores()   
 
 # 去掉其中的一个字段，探究其对得分的影响
 # def watch_each_prop_effect():

@@ -210,7 +210,7 @@ export const Admin = () => {
             ) : (
               <>
                 <DataViewPageHeader data={issueViewHeaderData} />
-                <CustomTable key={CONTENT_KEY.ISSUE} {...issueTableProps} />
+                <CustomTable key={CONTENT_KEY.ISSUE} {...issueTableProps()} />
               </>
             )
           ) : contentKey === CONTENT_KEY.ISSUE_MODEL ? (
@@ -221,7 +221,7 @@ export const Admin = () => {
                 <DataViewPageHeader data={issueModelViewHeaderData} />
                 <CustomTable
                   key={CONTENT_KEY.ISSUE_MODEL}
-                  {...issueModelTableProps}
+                  {...issueModelTableProps()}
                 />
               </>
             )
@@ -231,7 +231,7 @@ export const Admin = () => {
             ) : (
               <>
                 <DataViewPageHeader data={modelsViewHeaderData} />
-                <CustomTable {...modelTableProps} />
+                <CustomTable {...modelTableProps()} />
               </>
             )
           ) : contentKey === CONTENT_KEY.ABILITY ? (

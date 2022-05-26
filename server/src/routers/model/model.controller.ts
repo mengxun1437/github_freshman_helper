@@ -27,6 +27,11 @@ export class ModelController {
     );
   }
 
+  @Get('/allModelIds')
+  async getAllModelIds(){
+    return await this.modelService.getAllModelIds();
+  }
+
   // 获取issues的基本信息
   @Get('/getModelsBasicInfo')
   async getModelsBasicInfo() {

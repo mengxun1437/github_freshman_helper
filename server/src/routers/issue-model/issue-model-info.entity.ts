@@ -26,11 +26,11 @@ export class IssueModelInfo {
 
   // 问题本身
 
-  @Column({ type: 'text' })
-  issueTitle: string;
+  @Column({type:"text",nullable:true})
+  issueTitle:string
 
-  @Column({ type: 'text' })
-  issueBody: string;
+  @Column({type:'text',nullable:true})
+  issueBody:string
 
   // title长度
   @Column({ default: null })

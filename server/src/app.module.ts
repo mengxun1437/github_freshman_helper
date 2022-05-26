@@ -18,6 +18,9 @@ import { UserModule } from './routers/user/user.module';
 import { TokenModule } from './routers/token/token.module';
 import { TokenController } from './routers/token/token.controller';
 import { TokenService } from './routers/token/token.service';
+import { IssuePredictController } from './routers/issue-predict/issue-predict.controller';
+import { IssuePredictModule } from './routers/issue-predict/issue-predict.module';
+import { IssuePredictService } from './routers/issue-predict/issue-predict.service';
 
 @Module({
   imports: [
@@ -27,6 +30,7 @@ import { TokenService } from './routers/token/token.service';
     ModelModule,
     UserModule,
     TokenModule,
+    IssuePredictModule,
   ],
   controllers: [
     AppController,
@@ -35,6 +39,7 @@ import { TokenService } from './routers/token/token.service';
     ModelController,
     UserController,
     TokenController,
+    IssuePredictController,
   ],
   providers: [
     AppService,
@@ -43,6 +48,7 @@ import { TokenService } from './routers/token/token.service';
     ModelService,
     UserService,
     TokenService,
+    IssuePredictService
   ],
 })
 export class AppModule {}

@@ -70,10 +70,10 @@ def get_issue_models_list():
     return data
 
 
-def get_issue_model_info_list():
+def get_issue_model_info_list(local = True):
     if not os.path.exists('datasets'):
         os.mkdir('datasets')
-    if os.path.exists('datasets/remote_info.json'):
+    if local and os.path.exists('datasets/remote_info.json'):
         f = open('datasets/remote_info.json')
         data = json.load(f)
         f.close()

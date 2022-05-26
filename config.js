@@ -21,6 +21,7 @@ import { ModelPredict } from '../routers/model/model-predict.entity';
 import { IssueModelInfo } from '../routers/issue-model/issue-model-info.entity';
 import { User } from '../routers/user/user.entity';
 import { Token } from '../routers/token/token.entity';
+import { IssuePredict } from '../routers/issue-predict/issue-predict.entity';
 
 export const GITHUB_AUTH_LIST = [${github.tokens
   .map((token) => `'${token}'`)
@@ -33,7 +34,7 @@ export const MYSQL_CONNECT_CONFIG: any = {
   username: '${mysql.username}',
   password: '${mysql.username}',
   database: '${mysql.username}',
-  entities: [Issue,IssueCollect,IssueModel,IssueModelInfo,Model,ModelPredict,User,Token],
+  entities: [Issue,IssueCollect,IssueModel,IssueModelInfo,Model,ModelPredict,User,Token,IssuePredict],
   synchronize: true,
 };
 

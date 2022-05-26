@@ -77,6 +77,11 @@ export class ModelService implements OnModuleDestroy {
     return paginate<Model>(queryBuilder, options);
   }
 
+  async getAllModelIds(){
+    const ids = (await this.modelRepository.query('select modelId from model')) || []
+    return ids.map((id:any) => id.modelId)
+  }
+
   // 获取基本信息
   async getModelsBasicInfo() {
     const totalModelsNum = await this.modelRepository.count();
@@ -197,7 +202,7 @@ export class ModelService implements OnModuleDestroy {
 
   async startPredict({ issues, modelId }: any) {
     try {
-      const execCommand = `python ../model/predict_remote.py -i '${new Buffer(
+      const execCommand = `python ../model/predict_batch.py -i '${new Buffer(
         JSON.stringify(
           issues.map((issue: any) => ({
             ...issue,

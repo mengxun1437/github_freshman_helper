@@ -178,6 +178,10 @@ export const START_BATCH_PREDICT = async() => {
 }
 
 // model
+export const GET_ALL_MODEL_IDS = async () => {
+  return await _get('/model/allModelIds')
+}
+
 export const GET_MODELS_PAGINATE = async (params: any) => {
   return await _get(`/model/getModelsPaginate`, params);
 };
@@ -193,6 +197,19 @@ export const START_RUN_A_MODEL = async () => {
 export const START_PREDICT = async (body: any) => {
   return await _post("/model/startPredict", body);
 };
+
+// issue-predict
+export const START_ISSUE_PREDICT = async(body:any) => {
+  return await _post('/issuePredict/predict',body)
+}
+
+export const GET_ISSUE_PREDICTS_BY_PAGINATE = async(params:any) => {
+  return await _get('/issuePredict/getIssuePredictsPaginate',params)
+}
+
+export const GET_ISSUE_PREDICT_APPLY = async(body:any) => {
+  return await _post('/issuePredict/applyResult',body)
+}
 
 // other
 export const GET_SOURCE_FROM_QINIU = async (type: string, sourceId: string) => {

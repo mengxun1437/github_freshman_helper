@@ -1,5 +1,5 @@
 import { Table, Tag, Form, Select } from "antd";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export const CustomTable = (props: any) => {
   const {
@@ -7,6 +7,7 @@ export const CustomTable = (props: any) => {
     tableColumns,
     formOptions = [],
     formInitValues = {},
+    refresh = false,
   } = props;
   const [data, setData] = useState<any>([]);
   const [page, setPage] = useState(1);
@@ -14,6 +15,22 @@ export const CustomTable = (props: any) => {
   const [metaInfo, setMetaInfo] = useState<any>({});
   const [dataLoading, setDataLoading] = useState(false);
   const [form] = Form.useForm();
+  const refreshIntervalRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (refresh) {
+      if (refreshIntervalRef.current) return;
+      console.log("setInterval");
+      refreshIntervalRef.current = window.setInterval(() => {
+        console.log("refresh");
+        handleRefreshTable();
+      }, 5000);
+    } else {
+      console.log("clearInterval");
+      clearInterval(refreshIntervalRef.current);
+      refreshIntervalRef.current = null;
+    }
+  }, [refresh]);
 
   const getHandledFormValue = () => {
     const formValue = { ...form.getFieldsValue() };
@@ -97,7 +114,7 @@ export const CustomTable = (props: any) => {
         columns={tableColumns}
         dataSource={data}
         rowKey={(record) => record?.issueId || record?.modelId}
-        loading={dataLoading}
+        loading={refresh ? false : dataLoading}
         pagination={{
           position: ["bottomRight"],
           defaultCurrent: page,

@@ -34,13 +34,13 @@ export const Panel = (props:any) => {
           <br></br>
           <span>Freshman Helper</span>
         </h1>
-        <div style={{ display: "flex", flexDirection: "row",marginTop:25 }}>
+        <div style={{ display: "flex", flexDirection: "row",marginTop:25 }}>  
           <Button
+            type='primary'
             style={{
               backgroundColor: "#46b980",
               border: "none"
             }}
-            type="primary"
             shape="round"
             size="large"
           >

@@ -10,12 +10,16 @@ import {
   Row,
   Col,
   Spin,
+  Progress,
 } from "antd";
 import { Link } from "react-router-dom";
 import {
   GET_ISSUES_PAGINATE,
   GET_ISSUE_MODELS_PAGINATE,
   GET_MODELS_PAGINATE,
+  GET_ISSUE_PREDICTS_BY_PAGINATE,
+  START_ISSUE_PREDICT,
+  GET_ISSUE_PREDICT_APPLY,
 } from "../api/api";
 import dayjs from "dayjs";
 import { GET_SOURCE_FROM_QINIU } from "../api/api";
@@ -42,7 +46,15 @@ const ModelProgram: CustomTagMap = {
   random_forest: {
     color: "#8250df",
     desc: "随机森林",
-  }
+  },
+  svm: {
+    color: "blue",
+    desc: "SVM支持向量机",
+  },
+  lr: {
+    color: "gray",
+    desc: "逻辑回归",
+  },
 };
 
 const IssueStateType: CustomTagMap = {
@@ -67,7 +79,7 @@ const IssueLabelType: CustomTagMap = {
   },
 };
 
-export const issueTableProps = {
+export const issueTableProps = () => ({
   getDataFunc: GET_ISSUES_PAGINATE,
   tableColumns: [
     {
@@ -200,9 +212,9 @@ export const issueTableProps = {
     issueLinkedPr: "all",
     isGoodTag: "all",
   },
-};
+});
 
-export const issueModelTableProps = {
+export const issueModelTableProps = () => ({
   getDataFunc: GET_ISSUE_MODELS_PAGINATE,
   tableColumns: [
     {
@@ -322,9 +334,9 @@ export const issueModelTableProps = {
     isLinkedPr: "all",
     isGoodForFreshman: "all",
   },
-};
+});
 
-export const modelTableProps = {
+export const modelTableProps = () => ({
   getDataFunc: GET_MODELS_PAGINATE,
   tableColumns: [
     {
@@ -384,14 +396,14 @@ export const modelTableProps = {
                 const modalDataKeys = Object.keys(data);
                 const modalContent = (
                   <List
-                  style={{width:'90%'}}
+                    style={{ width: "90%" }}
                     dataSource={modalDataKeys}
                     renderItem={(modalDataKey) => (
                       <List.Item key={modalDataKey}>
-                        <Row style={{width:'100%'}}>
+                        <Row style={{ width: "100%" }}>
                           <Col span={12}>{modalDataKey}</Col>
                           <Col span={12}>
-                           {JSON.stringify(data[modalDataKey])}
+                            {JSON.stringify(data[modalDataKey])}
                           </Col>
                         </Row>
                       </List.Item>
@@ -401,7 +413,7 @@ export const modelTableProps = {
                 Modal.info({
                   title: record?.modelId,
                   content: modalContent,
-                  width:700
+                  width: 700,
                 });
               })
               .catch(() => {
@@ -438,7 +450,8 @@ export const modelTableProps = {
       title: "是否在训练中",
       dataIndex: "modelTraining",
       key: "modelTraining",
-      render: (text: any) => (text ? <Spin /> : <CheckCircleOutlined style={{color:'#2da44e'}} />),
+      render: (text: any) =>
+        text ? <Spin /> : <CheckCircleOutlined style={{ color: "#2da44e" }} />,
     },
     {
       title: "生成时间",
@@ -449,4 +462,103 @@ export const modelTableProps = {
   ],
   formOptions: [],
   formInitValues: {},
+});
+
+export const issuePredictProps = () => {
+  return {
+    getDataFunc: GET_ISSUE_PREDICTS_BY_PAGINATE,
+    tableColumns: [
+      {
+        title: "模型id",
+        dataIndex: "modelId",
+        key: "modelId",
+        fixed: true,
+        width: 200,
+        render: (text: any) => (
+          <Text style={{ width: 200 }} ellipsis={{ tooltip: text }}>
+            {text}
+          </Text>
+        ),
+      },
+      {
+        title: "状态",
+        dataIndex: "status",
+        key: "status",
+        width: 200,
+      },
+      {
+        title: "总分类数",
+        dataIndex: "predictNum",
+        key: "predictNum",
+        width: 100,
+      },
+      {
+        title: "分类进度",
+        dataIndex: "process",
+        key: "process",
+        width: 100,
+        render: (text: any) => {
+          return <Progress width={30} type="circle" percent={Number(text)} />;
+        },
+      },
+      {
+        title: "正样本数",
+        dataIndex: "goodNum",
+        key: "goodNum",
+        width: 100,
+      },
+      {
+        title: "负样本数",
+        dataIndex: "badNum",
+        key: "badNum",
+        width: 100,
+      },
+      {
+        title: "分类失败数",
+        dataIndex: "errorNum",
+        key: "errorNum",
+        width: 100,
+      },
+      {
+        title: "操作",
+        dataIndex: "opt",
+        key: "opt",
+        width: 150,
+        fixed: "right",
+        render: (_text: any, record: any) => {
+          return (
+            <>
+              <Button
+                onClick={() =>
+                  START_ISSUE_PREDICT({ modelId: record.modelId }).then(() => {
+                    message.info("开始重新分类");
+                  })
+                }
+              >
+                重新分类
+              </Button>
+              <Button
+                style={{ marginLeft: 10 }}
+                onClick={() => {
+                  if (record.process !== 100) {
+                    message.info("应用前进度必须为100%");
+                    return;
+                  }
+                  GET_ISSUE_PREDICT_APPLY({
+                    modelId: record.modelId,
+                  }).then(() => {
+                    message.info("应用成功~");
+                  });
+                }}
+              >
+                结果应用
+              </Button>
+            </>
+          );
+        },
+      },
+    ],
+    formOptions: [],
+    formInitValues: {},
+  };
 };

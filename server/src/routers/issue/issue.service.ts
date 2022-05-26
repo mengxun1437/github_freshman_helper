@@ -230,7 +230,7 @@ export class IssueService {
     const newIssue = new Issue();
     newIssue.issueId = d?.id;
     newIssue.issueBody = d?.body || '-';
-    newIssue.issueTitle = d?.title;
+    newIssue.issueTitle = d?.title || '-';
     newIssue.issueState = d?.state;
     newIssue.issueLinkedPr = d?.pull_request !== undefined;
     newIssue.issueLinkedPrInfo = JSON.stringify(d?.pull_request || {});
