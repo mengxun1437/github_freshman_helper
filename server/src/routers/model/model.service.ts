@@ -128,7 +128,8 @@ export class ModelService implements OnModuleDestroy {
     modelFramework = 'sklearn',
   }: any) {
     // 考虑到性能问题，平台只能允许同一时刻只有一中模型可以跑
-    const modelId = randomUUID();
+    // const modelId = randomUUID();
+    const modelId = modelProgram
     if (
       await this.modelRepository.findOne({
         modelTraining: true,

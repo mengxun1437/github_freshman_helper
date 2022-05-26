@@ -190,8 +190,8 @@ export const GET_MODELS_BASIC_INFO = async () => {
   return await _get("/model/getModelsBasicInfo");
 };
 
-export const START_RUN_A_MODEL = async () => {
-  return await _post("/model/startRunAModel");
+export const START_RUN_A_MODEL = async (body:any) => {
+  return await _post("/model/startRunAModel",body);
 };
 
 export const START_PREDICT = async (body: any) => {

@@ -78,16 +78,19 @@ const cardList = [
   },
 ];
 
+const models = ["decision_tree", "random_forest", "svm", "lr"];
+
 export const Ability = () => {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [curKey, setCurKey] = useState(ABILITY.TRAIN);
   const [predictForm] = Form.useForm();
   const [predictLoding, setPredictLoading] = useState(false);
   const predictModelIdRef = useRef<any>("");
-  const [refresh,setRefresh] = useState(true)
+  const trainModelRef = useRef<any>("");
+  const [refresh, setRefresh] = useState(true);
 
   useEffect(() => {
-    setRefresh(curKey === ABILITY.PREDICT && drawerVisible)
+    setRefresh(curKey === ABILITY.PREDICT && drawerVisible);
   }, [curKey, drawerVisible]);
 
   const handleCardClick = (key: any) => {
@@ -107,17 +110,41 @@ export const Ability = () => {
         message.info("正在收集");
       });
     } else if (key === ABILITY.TRAIN) {
-      START_RUN_A_MODEL()
-        .then((data: any) => {
-          if (data?.code === START_NEW_MODEL_STATUS_CODE.SUCCESS) {
-            message.success(`success,model id is ${data?.data?.modelId}`);
-          } else if (data?.code === START_NEW_MODEL_STATUS_CODE.FAIL) {
-            message.error(data?.message || "服务端错误");
+      Modal.info({
+        title: "选择训练的模型",
+        direction: "ltr",
+        maskClosable: true,
+        content: (
+          <div style={{ position: "relative" }}>
+            <Select
+              style={{ width: 200 }}
+              onChange={(val) => {
+                trainModelRef.current = val;
+              }}
+              options={models.map((da: any) => ({
+                label: da,
+                value: da,
+              }))}
+            ></Select>
+          </div>
+        ),
+        onOk: () => {
+          if (!trainModelRef.current) {
+            message.info("需要选择一个模型用于训练");
+            return;
           }
-        })
-        .catch((e) => {
-          message.error(e?.message || "服务端错误");
-        });
+          // 触发模型训练命令
+          START_RUN_A_MODEL({
+            modelProgram: trainModelRef.current,
+          })
+            .then((data: any) => {
+              message.info("开始训练");
+            })
+            .catch((e) => {
+              message.error(e?.message || "服务端错误");
+            });
+        },
+      });
     } else if (key === ABILITY.PREDICT) {
       // START_BATCH_PREDICT().then(() => {
       //   message.info("正在批量分类")
@@ -128,9 +155,9 @@ export const Ability = () => {
           direction: "ltr",
           maskClosable: true,
           content: (
-            <div style={{position:'relative'}}>
+            <div style={{ position: "relative" }}>
               <Button
-              style={{position:'absolute',right:0,}}
+                style={{ position: "absolute", right: 0 }}
                 type="link"
                 onClick={() => {
                   setDrawerVisible(true);
