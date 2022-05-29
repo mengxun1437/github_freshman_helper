@@ -231,7 +231,7 @@ export const Admin = () => {
             ) : (
               <>
                 <DataViewPageHeader data={modelsViewHeaderData} />
-                <CustomTable {...modelTableProps()} />
+                <CustomTable refresh {...modelTableProps()} />
               </>
             )
           ) : contentKey === CONTENT_KEY.ABILITY ? (

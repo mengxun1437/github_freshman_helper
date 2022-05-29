@@ -24,7 +24,7 @@ export const CustomTable = (props: any) => {
       refreshIntervalRef.current = window.setInterval(() => {
         console.log("refresh");
         handleRefreshTable();
-      }, 5000);
+      }, 2500);
     } else {
       console.log("clearInterval");
       clearInterval(refreshIntervalRef.current);

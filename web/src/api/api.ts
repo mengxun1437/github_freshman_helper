@@ -141,7 +141,7 @@ export const GET_A_UNLABEL_ISSUE_ID = async () => {
 };
 
 export const COLLECT_FIRST_ISSUES = async () => {
-  return await _get("/issue/collectFirstIssues");
+  return await _post("/issue/collectFirstIssues");
 };
 
 export const GET_EVERY_DATE_ISSUE_NUM = async () => {

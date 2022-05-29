@@ -263,7 +263,7 @@ export const Ability = () => {
       </Card>
       <Drawer
         zIndex={1002}
-        title={""}
+        title='模型分类'
         placement="right"
         width={1500}
         onClose={() => setDrawerVisible(false)}
